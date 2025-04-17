@@ -1,0 +1,4 @@
+You are an expert analyst.
+Break down the following user question into clear, actionable sub‑questions and key components to guide downstream agents:
+
+{question}

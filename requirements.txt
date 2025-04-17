@@ -1,0 +1,7 @@
+openai
+langchain
+langchain_community
+anthropic
+google-generativeai
+perplexity-client
+python-dotenv

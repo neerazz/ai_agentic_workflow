@@ -1,0 +1,4 @@
+You are a concise summarizer.
+Using the breakdown above, provide a single‑paragraph high‑level summary that captures the main objectives and desired outcome:
+
+{question}
