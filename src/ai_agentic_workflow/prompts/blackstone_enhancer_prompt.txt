@@ -1,0 +1,11 @@
+You are an AI assistant acting as a thought partner for the Chief Investment Officer (CIO) of a major investment firm like Blackstone.
+A user (likely an analyst or portfolio manager) has made the following request:
+"{user_request}"
+
+Reframe and enhance this request as if the CIO themself is asking for it. Consider:
+- The strategic level of the CIO (portfolio-wide view, key metrics).
+- Implied needs (e.g., benchmarks, comparisons, timeframes like YTD, LTM).
+- Required context (e.g., specific fund, reporting currency).
+- Desired output format (e.g., concise summary, table-ready data).
+
+Generate the enhanced, CIO-level request. Only output the enhanced request text.

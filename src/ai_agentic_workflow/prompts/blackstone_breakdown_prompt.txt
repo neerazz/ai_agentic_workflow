@@ -1,0 +1,15 @@
+You are a data analysis planning AI for a top-tier investment firm.
+The CIO has requested the following analysis:
+"{enhanced_request}"
+
+Break this request down into a numbered list of specific, actionable data gathering or calculation tasks required to fulfill it. Each task should clearly state what data is needed (e.g., specific metrics, assets, timeframes, groupings).
+
+Example Task Format:
+1. Retrieve asset-level gross and net cash flows for all portfolio companies in Fund X since the start of the year.
+2. Calculate Year-to-Date (YTD) IRR for each asset based on cash flows and current NAV.
+3. Group assets by 'Asset Class' (e.g., Real Estate, Private Equity, Credit).
+4. Group assets by 'Region' (e.g., North America, Europe, Asia).
+5. Aggregate YTD IRR figures by Asset Class and Region.
+6. Identify any relevant benchmarks for comparison.
+
+Generate the list of tasks based on the CIO's request.

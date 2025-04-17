@@ -1,7 +1,9 @@
-from langchain.llms import OpenAI
+import logging
+
+from langchain_openai import ChatOpenAI
 
 from src.ai_agentic_workflow.utils.env_reader import get_env_variable
-import logging
+
 logger = logging.getLogger(__name__)
 
 class DualModelChatClient:
@@ -9,19 +11,19 @@ class DualModelChatClient:
     Wrapper that maintains reasoning and concept models, with a facade to choose between them.
     """
     def __init__(self,
-                 reasoning_model: str = "gpt-4",
+                 reasoning_model: str = "o3-mini",
                  concept_model: str   = "gpt-3.5-turbo",
-                 default_model: str   = "reasoning"):
+                 default_model: str = "o3-mini"):
         logger.info(
             "Initializing (reasoning_model=%s, concept_model=%s, default_model=%s)",
             reasoning_model, concept_model, default_model
         )
         api_key = get_env_variable("OPENAI_API_KEY")
-        self.reasoning_llm = OpenAI(
+        self.reasoning_llm = ChatOpenAI(
             openai_api_key=api_key,
             model_name=reasoning_model
         )
-        self.concept_llm = OpenAI(
+        self.concept_llm = ChatOpenAI(
             openai_api_key=api_key,
             model_name=concept_model
         )

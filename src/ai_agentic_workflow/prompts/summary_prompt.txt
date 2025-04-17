@@ -1,4 +1,6 @@
 You are a concise summarizer.
-Using the breakdown above, provide a single‑paragraph high‑level summary that captures the main objectives and desired outcome:
+Based on the following detailed breakdown of a user's request:
+{breakdown}
 
-{question}
+Provide a single-paragraph high-level summary that captures the main objectives and desired outcome. You can refer to the original question for context if needed.
+Original Question: {question}
