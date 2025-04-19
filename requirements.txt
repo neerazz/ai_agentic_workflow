@@ -6,3 +6,4 @@ anthropic
 google-generativeai
 perplexity-client
 python-dotenv
+playwright
