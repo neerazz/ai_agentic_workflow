@@ -3,6 +3,7 @@ import os
 import platform
 import time
 import traceback
+from enum import Enum
 from pathlib import Path
 
 from selenium import webdriver
@@ -15,279 +16,226 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 from webdriver_manager.chrome import ChromeDriverManager
 
-# --- Helper Functions ---
-
 logger = logging.getLogger(__name__)
 
+# --- Supported Sites ---
+class Site(Enum):
+    CHATGPT = "chatgpt"
+    PERPLEXITY = "perplexity"
+
+SITE_CONFIG = {
+    Site.CHATGPT: {
+        "url": "https://chat.openai.com/",
+        "input_locator": (By.ID, "prompt-textarea"),
+        "response_locator": (By.CSS_SELECTOR, "div.markdown"),
+    },
+    Site.PERPLEXITY: {
+        "url": "https://www.perplexity.ai/",
+        "input_locator": (
+            By.CSS_SELECTOR,
+            "textarea[placeholder='Ask anything…']",
+        ),
+        "response_locator": (By.CSS_SELECTOR, "div.prose.text-pretty"),
+    },
+}
+
+# --- Helper Functions ---
 def get_default_chrome_user_data_dir() -> str:
-    """Returns the path to the default Chrome user data directory."""
     system = platform.system()
     if system == "Darwin":
-        path = (
-            Path.home()
-            / "Library"
-            / "Application Support"
-            / "Google"
-            / "Chrome"
-            / "Default"
-        )
+        path = Path.home() / "Library/Application Support/Google/Chrome/Default"
     elif system == "Windows":
-        local = os.environ.get("LOCALAPPDATA", "")
-        if not local:
-            user_profile = os.environ.get("USERPROFILE", "")
-            if not user_profile:
-                raise OSError("Could not determine user profile directory.")
-            local = str(Path(user_profile) / "AppData" / "Local")
-        path = Path(local) / "Google" / "Chrome" / "User Data" / "Default"
+        local = os.environ.get("LOCALAPPDATA") or (
+            Path(os.environ.get("USERPROFILE", "")) / "AppData/Local"
+        )
+        path = Path(local) / "Google/Chrome/User Data/Default"
     else:
-        path = Path.home() / ".config" / "google-chrome" / "Default"
+        path = Path.home() / ".config/google-chrome/Default"
 
-    print(f"[DEBUG] Determined default user data dir: {path}")
+    print(f"[DEBUG] Default Chrome user data dir: {path}")
     if not path.exists():
-        print(f"[WARNING] Default user data directory not found at: {path}")
+        print(f"[WARNING] User data dir not found: {path}")
     return str(path)
 
 
 def get_chrome_executable_path() -> str:
-    """Returns the path to the Chrome executable, checking common locations."""
     system = platform.system()
-    paths_to_check = []
-
+    candidates = []
     if system == "Darwin":
-        paths_to_check.extend([
+        candidates = [
             "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
-            str(Path.home() / "Applications" / "Google Chrome.app" / "Contents" / "MacOS" / "Google Chrome")
-        ])
+            str(Path.home() / "Applications/Google Chrome.app/Contents/MacOS/Google Chrome"),
+        ]
     elif system == "Windows":
-        prog_files_x86 = os.environ.get("PROGRAMFILES(X86)", "")
-        if prog_files_x86:
-            paths_to_check.append(str(Path(prog_files_x86) / "Google" / "Chrome" / "Application" / "chrome.exe"))
-        prog_files = os.environ.get("PROGRAMFILES", "")
-        if prog_files:
-            paths_to_check.append(str(Path(prog_files) / "Google" / "Chrome" / "Application" / "chrome.exe"))
-        local_app_data = os.environ.get("LOCALAPPDATA", "")
-        if local_app_data:
-            paths_to_check.append(str(Path(local_app_data) / "Google" / "Chrome" / "Application" / "chrome.exe"))
-    else:  # Linux
-        paths_to_check.extend([
-            "/usr/bin/google-chrome",
-            "/opt/google/chrome/chrome",
-            "/usr/bin/google-chrome-stable",
-        ])
+        for env in ["PROGRAMFILES(X86)", "PROGRAMFILES", "LOCALAPPDATA"]:
+            base = os.environ.get(env)
+            if base:
+                candidates.append(str(Path(base) / "Google/Chrome/Application/chrome.exe"))
+    else:
+        candidates = ["/usr/bin/google-chrome", "/opt/google/chrome/chrome", "/usr/bin/google-chrome-stable"]
 
-    print("[DEBUG] Checking potential Chrome executable paths:")
-    for path_str in paths_to_check:
-        print(f"[DEBUG]  - {path_str}")
-        if Path(path_str).exists():
-            print(f"[DEBUG] Found Chrome executable at: {path_str}")
-            return path_str
+    print(f"[DEBUG] Checking Chrome executable candidates: {candidates}")
+    for p in candidates:
+        if Path(p).exists():
+            print(f"[DEBUG] Found Chrome executable: {p}")
+            return p
+    raise FileNotFoundError(f"Chrome executable not found. Checked: {candidates}")
 
-    raise FileNotFoundError(f"Cannot find Chrome executable. Checked: {paths_to_check}")
+# --- Chrome Configuration & Driver Creation ---
+def configure_chrome_options(user_data_dir: str, profile_dir: str, chrome_path: str) -> Options:
+    print(f"[INFO] Configuring Chrome options with user_data_dir={user_data_dir}, profile={profile_dir}")
+    opts = Options()
+    opts.add_argument(f"--user-data-dir={Path(user_data_dir).parent}")
+    opts.add_argument(f"--profile-directory={profile_dir}")
+    opts.binary_location = chrome_path
+    opts.add_argument("--start-maximized")
+    opts.add_experimental_option("excludeSwitches", ["enable-automation"])
+    opts.add_experimental_option("useAutomationExtension", False)
+    return opts
 
 
-# --- Main Selenium Automation Function ---
+def create_driver(options: Options) -> webdriver.Chrome:
+    print("[INFO] Creating ChromeDriver service and launching browser...")
+    service = Service(ChromeDriverManager().install())
+    driver = webdriver.Chrome(service=service, options=options)
+    print("[SUCCESS] ChromeDriver initialized.")
+    return driver
 
+# --- Interaction Steps ---
+def navigate_to_site(driver: webdriver.Chrome, url: str, timeout: int) -> None:
+    print(f"[INFO] Navigating to {url}...")
+    driver.get(url)
+    WebDriverWait(driver, timeout).until(lambda d: d.current_url.startswith("http"))
+    print(f"[SUCCESS] Arrived at {driver.current_url}")
+
+
+def send_prompt(driver: webdriver.Chrome, locator: tuple, text: str, timeout: int) -> None:
+    print(f"[INFO] Waiting for input element {locator}...")
+    wait = WebDriverWait(driver, timeout)
+    el = wait.until(EC.element_to_be_clickable(locator))
+    print(f"[INFO] Sending prompt text (length {len(text)} chars)")
+    el.clear()
+    el.send_keys(text)
+    el.send_keys(Keys.ENTER)
+    print("[SUCCESS] Prompt sent.")
+
+
+def wait_for_response_container(driver: webdriver.Chrome, locator: tuple, timeout: int) -> None:
+    print(f"[INFO] Waiting for response container {locator}...")
+    WebDriverWait(driver, timeout).until(EC.presence_of_element_located(locator))
+    print("[SUCCESS] Response container detected.")
+
+
+def prompt_user_wait(initial_minutes: float) -> float:
+    minutes = initial_minutes
+    print(f"[INFO] Post-response wait is set to {minutes} minute(s)")
+    while minutes < 0:
+        try:
+            minutes = float(input("Enter wait time in minutes: "))
+        except ValueError:
+            print("Invalid input, try again.")
+    if minutes > 0:
+        print(f"[INFO] Sleeping for {minutes} minute(s)...")
+        time.sleep(minutes * 60)
+        print("[INFO] Post-response wait complete.")
+    return minutes
+
+
+def extract_response(driver: webdriver.Chrome, locator: tuple, timeout: int) -> tuple[str, str | None]:
+    print(f"[INFO] Extracting response from locator {locator}...")
+    wait = WebDriverWait(driver, timeout)
+    wait.until(lambda d: d.find_elements(*locator) and d.find_elements(*locator)[-1].text.strip())
+    elements = driver.find_elements(*locator)
+    text = elements[-1].text if elements else None
+    print(f"[SUCCESS] Extracted response text (length: {len(text) if text else 0}).")
+    return driver.current_url, text
+
+# --- Main Orchestration ---
 def automate_website_interact_and_wait(
     url: str,
     input_locator: tuple,
     prompt_text: str,
     response_locator: tuple,
-    element_wait_timeout_seconds: int = 30, # Timeout for finding elements (seconds)
-    user_wait_minutes: float = 2.0 # Delay after detecting response text
+    element_wait_timeout: int = 30,
+    user_wait_minutes: float = 2.0
 ) -> tuple[str, str | None]:
-    """
-    Automates interaction, extracts text, waits, and returns URL+response.
-
-    Launches Chrome with default profile, navigates, interacts, waits for response,
-    extracts text, prompts user for wait time, waits, closes browser.
-
-    Args:
-        url: The target website URL.
-        input_locator: Tuple (By strategy, value) for the input field.
-        prompt_text: Text to enter.
-        response_locator: Tuple (By strategy, value) for the response container.
-        element_wait_timeout_seconds: Max seconds to wait for elements.
-        post_response_delay_seconds: Seconds to wait after detecting response text.
-
-    Returns:
-        A tuple containing (url, extracted_response_text).
-        extracted_response_text is None if an error occurred.
-    """
+    print("\n===== Automation Started =====")
     driver = None
+    final_url = url
     response_text = None
-    final_url = url # <<-- Initialize final_url
-    start_time = time.time()
-    print(f"\n{'='*15} Automation Started {'='*15}")
-
     try:
-        print("[INFO] Finding Chrome profile and executable paths...")
         user_data_dir = get_default_chrome_user_data_dir()
-        chrome_executable_path = get_chrome_executable_path()
-        profile_dir = "Default"
-        user_data_path = str(Path(user_data_dir).parent) # Need parent dir for --user-data-dir
+        chrome_path = get_chrome_executable_path()
+        opts = configure_chrome_options(user_data_dir, "Default", chrome_path)
+        driver = create_driver(opts)
 
-        print(f"[INFO] Target URL: {url}")
-        print(f"[INFO] Using Profile: {user_data_path} / {profile_dir}")
-        print("[INFO] Configuring Chrome options...")
-        chrome_options = Options()
-        chrome_options.add_argument(f"--user-data-dir={user_data_path}")
-        chrome_options.add_argument(f"--profile-directory={profile_dir}")
-        chrome_options.binary_location = chrome_executable_path
-        chrome_options.add_argument("--start-maximized")
-        chrome_options.add_experimental_option("excludeSwitches", ["enable-automation"])
-        chrome_options.add_experimental_option('useAutomationExtension', False)
+        navigate_to_site(driver, url, element_wait_timeout)
+        send_prompt(driver, input_locator, prompt_text, element_wait_timeout)
+        wait_for_response_container(driver, response_locator, element_wait_timeout)
 
-        print("[INFO] Setting up ChromeDriver service...")
-        service = Service(ChromeDriverManager().install())
-
-        print("[INFO] Launching Chrome browser...")
-        # Ensure previous Chrome instance using this profile is closed!
-        driver = webdriver.Chrome(service=service, options=chrome_options)
-        print("[SUCCESS] Chrome launched successfully.")
-
-        wait = WebDriverWait(driver, element_wait_timeout_seconds)
-
-        print(f"[INFO] Navigating to {url}...")
-        driver.get(url)
-        print(f"[SUCCESS] Navigation to {url} complete.")
-
-        print(f"[INFO] Waiting for input element: {input_locator}...")
-        input_element = wait.until(EC.element_to_be_clickable(input_locator))
-        print("[SUCCESS] Input element found and clickable.")
-
-        print(f"[INFO] Entering prompt (first 50 chars): '{prompt_text[:50]}...'")
-        input_element.clear()
-        input_element.send_keys(prompt_text)
-        input_element.send_keys(Keys.ENTER)
-        print("[SUCCESS] Prompt entered and Enter key pressed.")
-
-        print(f"[INFO] Waiting for response container element: {response_locator}...")
-        wait.until(EC.presence_of_element_located(response_locator))
-        print("[SUCCESS] Response container located.")
-
-        print(f"[INFO] Waiting for text to appear in the last response element...")
-
-    except FileNotFoundError as e:
-        print(f"[ERROR] File Not Found: {e}")
-        print("[ERROR] Could not find Chrome executable or user data directory.")
-    except TimeoutException:
-        print(f"[ERROR] Timed out waiting for element.")
-        print(f"  Input Locator: {input_locator}")
-        print(f"  Response Locator: {response_locator}")
-        print(f"  Timeout Setting: {element_wait_timeout_seconds}s")
-        traceback.print_exc()
-    except NoSuchElementException as e:
-        print(f"[ERROR] Could not find element: {e}")
-        print(f"  Locator possibly involved: {e.msg}") # Selenium often includes locator in msg
+    except (FileNotFoundError, TimeoutException, NoSuchElementException) as e:
+        print(f"[ERROR] Automation error: {e}")
         traceback.print_exc()
     except Exception as e:
-        print(f"[ERROR] An unexpected error occurred: {e}")
+        print(f"[ERROR] Unexpected error: {e}")
         traceback.print_exc()
-
     finally:
-        # This block executes whether the try block succeeded or failed
-        print("\n--- Entering Finally Block (Wait/Cleanup) ---")
-        if driver: # Only proceed if driver was initialized
-            print("[INFO] Prompting for wait time before closing browser...")
-            while user_wait_minutes < 0:
-                try:
-                    wait_input = input(">>> Enter wait time in MINUTES before closing (e.g., 5, 0.5, or 0 to close now): ")
-                    user_wait_minutes = float(wait_input)
-                    if user_wait_minutes < 0:
-                        print("   [WARN] Please enter a non-negative number.")
-                except ValueError:
-                    print("   [WARN] Invalid input. Please enter a number.")
-                except EOFError:
-                    print("   [WARN] Input stream closed. Defaulting to 0 minutes wait.")
-                    user_wait_minutes = 0.0 # Default to 0 if input fails
-
-            print(f"[INFO] Applying post-response delay: {user_wait_minutes}s...")
-            if user_wait_minutes > 0:
-                wait_seconds = user_wait_minutes * 60
-                print(f"[INFO] Waiting for {user_wait_minutes:.2f} minute(s) ({int(wait_seconds)} seconds)...")
-                try:
-                    time.sleep(wait_seconds)
-                    print("[INFO] Wait finished.")
-                except KeyboardInterrupt:
-                    print("\n[WARN] Wait interrupted by user (Ctrl+C).")
-            else:
-                print("[INFO] Skipping wait (time <= 0).")
-
-            print("[INFO] Attempting final text extraction from the last matching element...")
-            # Wait until the *last* element matching the locator has some text
-            wait.until(lambda d: d.find_elements(*response_locator) and d.find_elements(*response_locator)[-1].text.strip() != "")
-            print("[SUCCESS] Initial text detected in response element.")
+        if driver:
+            prompt_user_wait(user_wait_minutes)
             try:
-                final_url = driver.current_url # Capture the final URL after interaction
-                all_response_elements = driver.find_elements(*response_locator)
-                if all_response_elements:
-                    response_element = all_response_elements[-1]
-                    response_text = response_element.text
-                    print(f"[SUCCESS] Response text extracted (length: {len(response_text)}).")
-                else:
-                    print("[WARNING] Response element locator matched earlier, but no elements found now.")
-                    response_text = None
-            except Exception as find_err:
-                print(f"[ERROR] Failed during final text/URL extraction: {find_err}")
-                # Attempt to get URL even if text extraction fails
-                if driver and final_url is None:
-                    try:
-                        final_url = driver.current_url
-                        print(f"[DEBUG] Captured final URL after text extraction error: {final_url}")
-                    except Exception as url_err:
-                        print(f"[ERROR] Failed to capture final URL after text error: {url_err}")
+                final_url, response_text = extract_response(driver, response_locator, element_wait_timeout)
+            except Exception as e:
+                print(f"[ERROR] Extraction error: {e}")
                 traceback.print_exc()
-                response_text = None # Ensure text is None on error
-
-            print("[INFO] Closing the browser...")
+            print("[INFO] Closing browser...")
             driver.quit()
             print("[SUCCESS] Browser closed.")
-        else:
-             print("[WARN] Driver was not initialized, cannot perform wait or close actions.")
+        print("===== Automation Finished =====\n")
+    return final_url, response_text
 
-        end_time = time.time()
-        print(f"\n{'='*15} Automation Finished (Total time: {end_time - start_time:.2f}s) {'='*15}")
-
-    # Return the URL and the extracted text (or None)
-    return (final_url, response_text)
-
-
-# --- Example Usage ---
-if __name__ == "__main__":
-
-    # --- Configuration ---
-    target_url = "https://chat.openai.com/"
-    # Use DevTools (F12) to verify these locators on the target site
-    chat_input_locator = (By.ID, "prompt-textarea")
-    chat_response_locator = (By.CSS_SELECTOR, "div.markdown") # Targets the main response text container
-
-    prompt = "Explain Python's Global Interpreter Lock (GIL) in simple terms."
-
-    # --- Pre-run Check ---
-    print("\n*** IMPORTANT: Ensure ALL Chrome instances using the default profile are CLOSED before running! ***\n")
-    time.sleep(4) # Give user time to read
-
-    # --- Run the Automation ---
-    returned_url, extracted_response = automate_website_interact_and_wait(
-        url=target_url,
-        input_locator=chat_input_locator,
+# --- High-Level Runner ---
+def run_automation(
+    site: Site,
+    prompt: str,
+    element_wait_timeout: int = 30,
+    user_wait_minutes: float = 2.0,
+) -> tuple[str, str | None]:
+    config = SITE_CONFIG.get(site)
+    if not config:
+        raise ValueError(f"Unsupported site: {site}")
+    print(f"\n>>> Running automation for {site.name} <<<")
+    resp_url, resp_text = automate_website_interact_and_wait(
+        url=config["url"],
+        input_locator=config["input_locator"],
         prompt_text=prompt,
-        response_locator=chat_response_locator,
-        element_wait_timeout_seconds=30, # How long to wait for elements to appear
-        user_wait_minutes=1.0   # How long to wait after response text starts appearing
+        response_locator=config["response_locator"],
+        element_wait_timeout=element_wait_timeout,
+        user_wait_minutes=user_wait_minutes,
     )
-
-    # --- Print the Final Result ---
     print("\n" + "=" * 40)
-    print("            FINAL RESULT")
-    print("-" * 40)
-    print(f"URL Visited: {returned_url}")
-    print("-" * 40)
-    if extracted_response:
-        print("Extracted Response:")
-        print(extracted_response)
-    else:
-        print("Response Text: [Could not be extracted or an error occurred]")
-    print("=" * 40 + "\n")
+    print(f"Site: {site} - Final URL: {resp_url}")
+    print("" + "=" * 40)
+    print(resp_text or "[No response extracted]")
 
-    print("[INFO] Script execution complete.")
+    print("\n[INFO] Script execution complete.")
+    return resp_url, resp_text
+
+if __name__ == "__main__":
+    print(
+        "\n*** IMPORTANT: Ensure ALL Chrome instances using the default profile are CLOSED before running! ***\n"
+    )
+    time.sleep(4)
+
+    # Example: Perplexity.ai
+    prompt = "What are the main differences between Selenium and Playwright?"
+    # Example: ChatGPT
+    resp_url, resp_text = run_automation(
+        Site.CHATGPT,
+        "Explain Python's Global Interpreter Lock (GIL) in simple terms.",
+        user_wait_minutes=1,
+    )
+    perp_url, perp_text = run_automation(
+        Site.PERPLEXITY,
+        prompt,
+        user_wait_minutes=1.5,
+    )
