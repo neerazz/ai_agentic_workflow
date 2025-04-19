@@ -150,7 +150,7 @@ def extract_response(driver: webdriver.Chrome, locator: tuple, timeout: int) -> 
     print(f"[SUCCESS] Extracted response text (length: {len(text) if text else 0}).")
     return driver.current_url, text
 
-# --- Main Orchestration ---
+# --- Main Orchestration (single-site) ---
 def automate_website_interact_and_wait(
     url: str,
     input_locator: tuple,
@@ -193,7 +193,52 @@ def automate_website_interact_and_wait(
         print("===== Automation Finished =====\n")
     return final_url, response_text
 
-# --- High-Level Runner ---
+# --- New: Multi-Tab Orchestration ---
+def automate_sites_in_tabs(
+    sites_prompts: list[tuple[Site, str]],
+    element_wait_timeout: int = 30,
+    user_wait_minutes: float = 2.0
+) -> dict[Site, tuple[str, str | None]]:
+    print("\n===== Multi-Tab Automation Started =====")
+    # Setup driver once
+    user_data_dir = get_default_chrome_user_data_dir()
+    chrome_path = get_chrome_executable_path()
+    opts = configure_chrome_options(user_data_dir, "Default", chrome_path)
+    driver = create_driver(opts)
+
+    # Track tabs: [(site, handle, prompt)]
+    tab_info = []
+    for idx, (site, prompt) in enumerate(sites_prompts):
+        if idx == 0:
+            handle = driver.current_window_handle
+        else:
+            print(f"[INFO] Opening new tab for {site.name}")
+            driver.execute_script("window.open('');")
+            handle = driver.window_handles[-1]
+        tab_info.append((site, handle, prompt))
+        driver.switch_to.window(handle)
+        cfg = SITE_CONFIG[site]
+        navigate_to_site(driver, cfg["url"], element_wait_timeout)
+        send_prompt(driver, cfg["input_locator"], prompt, element_wait_timeout)
+        wait_for_response_container(driver, cfg["response_locator"], element_wait_timeout)
+
+    # Post-response wait
+    prompt_user_wait(user_wait_minutes)
+
+    # Extract from each tab
+    results = {}
+    for site, handle, _ in tab_info:
+        driver.switch_to.window(handle)
+        cfg = SITE_CONFIG[site]
+        final_url, text = extract_response(driver, cfg["response_locator"], element_wait_timeout)
+        results[site] = (final_url, text)
+
+    print("[INFO] Closing browser with all tabs...")
+    driver.quit()
+    print("===== Multi-Tab Automation Finished =====\n")
+    return results
+
+# --- High-Level Runner (single-site) ---
 def run_automation(
     site: Site,
     prompt: str,
@@ -204,7 +249,7 @@ def run_automation(
     if not config:
         raise ValueError(f"Unsupported site: {site}")
     print(f"\n>>> Running automation for {site.name} <<<")
-    resp_url, resp_text = automate_website_interact_and_wait(
+    return automate_website_interact_and_wait(
         url=config["url"],
         input_locator=config["input_locator"],
         prompt_text=prompt,
@@ -212,30 +257,25 @@ def run_automation(
         element_wait_timeout=element_wait_timeout,
         user_wait_minutes=user_wait_minutes,
     )
-    print("\n" + "=" * 40)
-    print(f"Site: {site} - Final URL: {resp_url}")
-    print("" + "=" * 40)
-    print(resp_text or "[No response extracted]")
 
-    print("\n[INFO] Script execution complete.")
-    return resp_url, resp_text
-
+# --- Example Usage ---
 if __name__ == "__main__":
     print(
         "\n*** IMPORTANT: Ensure ALL Chrome instances using the default profile are CLOSED before running! ***\n"
     )
     time.sleep(4)
 
-    # Example: Perplexity.ai
-    prompt = "What are the main differences between Selenium and Playwright?"
-    # Example: ChatGPT
-    resp_url, resp_text = run_automation(
-        Site.CHATGPT,
-        "Explain Python's Global Interpreter Lock (GIL) in simple terms.",
-        user_wait_minutes=1,
-    )
-    perp_url, perp_text = run_automation(
-        Site.PERPLEXITY,
-        prompt,
-        user_wait_minutes=1.5,
-    )
+    # Single-site example:
+    # resp_url, resp_text = run_automation(Site.PERPLEXITY, "What is Selenium?")
+
+    prompt = "What is the GIL in Python?"
+    sites_prompts = [
+        (Site.CHATGPT, prompt),
+        (Site.PERPLEXITY, prompt),
+    ]
+    results = automate_sites_in_tabs(sites_prompts, user_wait_minutes=1.0)
+
+    for site, (url, text) in results.items():
+        print("\n" + "="*30)
+        print(f"Site: {site.name}\nURL: {url}\nResponse:\n{text or '[No response]'}")
+    print("\n[INFO] Multi-tab run complete.")
