@@ -7,3 +7,5 @@ google-generativeai
 perplexity-client
 python-dotenv
 playwright
+selenium
+webdriver-manager
