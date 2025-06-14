@@ -6,9 +6,15 @@ from __future__ import annotations
 
 import logging
 import json
+import os
 import re
+from pathlib import Path
 from dataclasses import dataclass, field
 from typing import Dict, Any, List, Optional
+
+import requests
+import openai
+import google.generativeai as genai
 
 from crewai import Agent, Task, Crew, Process
 from langchain.tools import Tool
@@ -696,7 +702,7 @@ class YouTubeWisdomWorkflow:
     MAX_RETRIES = 3
     SCRIPT_REVIEW_THRESHOLD = 85
 
-    def run(self, initial_idea: str, debug: bool = False) -> VideoProject:
+    def run(self, initial_idea: str, debug: bool = False, asset_dir: str | None = None) -> VideoProject:
         """Run the complete workflow for wisdom video generation with self-correction.
 
         Parameters
@@ -706,6 +712,10 @@ class YouTubeWisdomWorkflow:
         debug: bool, optional
             When ``True`` the workflow emits verbose logs of all agent
             invocations and parsed outputs.
+
+        asset_dir: str, optional
+            Directory to save generated image and audio assets. If ``None`` no
+            assets are created.
 
         Notes
         -----
@@ -799,6 +809,8 @@ class YouTubeWisdomWorkflow:
                 logger.error(f"Error processing crew outputs: {e}")
                 break
 
+        if asset_dir:
+            self.generate_assets(project, asset_dir)
         return project
 
     def _parse_json_output(self, raw_output: str) -> Dict[str, Any]:
@@ -813,8 +825,54 @@ class YouTubeWisdomWorkflow:
             logger.error(f"JSON parsing error: {e}")
             return {}
 
+    def generate_assets(self, project: VideoProject, output_dir: str) -> None:
+        """Generate images and audio for each scene using external models."""
+        if not output_dir:
+            return
+        Path(output_dir).mkdir(parents=True, exist_ok=True)
 
-def run_youtube_wisdom_workflow(initial_idea: str, debug: bool = False) -> Dict[str, Any]:
+        openai.api_key = os.getenv("OPENAI_API_KEY")
+        genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
+
+        for prompt in project.visual_prompts or []:
+            scene = prompt.get("scene_number")
+            desc = prompt.get("main_subject", "scene")
+            slug = re.sub(r"[^a-zA-Z0-9]+", "_", desc.lower())[:50].strip("_")
+            img_path = Path(output_dir) / f"{scene:02d}_{slug}.png"
+            try:
+                prompt_text = (
+                    f"{prompt.get('main_subject', '')}, {prompt.get('setting', '')}, "
+                    f"{prompt.get('lighting', '')}, {prompt.get('color_palette', '')}"
+                )
+                resp = openai.images.generate(
+                    model="dall-e-3",
+                    prompt=prompt_text,
+                    n=1,
+                    size="1024x576",
+                )
+                url = resp.data[0].url
+                data = requests.get(url, timeout=30).content
+                with open(img_path, "wb") as f:
+                    f.write(data)
+            except Exception as e:
+                logger.error("Image generation failed for scene %s: %s", scene, e)
+
+        for scene in project.enhanced_script or []:
+            num = scene.get("scene_number")
+            text = scene.get("narration", "")
+            slug = re.sub(r"[^a-zA-Z0-9]+", "_", text[:20].lower()).strip("_")
+            audio_path = Path(output_dir) / f"{num:02d}_{slug}.mp3"
+            try:
+                model = genai.GenerativeModel("gemini-2.5-pro-preview-tts")
+                resp = model.generate_content(text)
+                audio_bytes = resp.audio
+                with open(audio_path, "wb") as f:
+                    f.write(audio_bytes)
+            except Exception as e:
+                logger.error("Audio generation failed for scene %s: %s", num, e)
+
+
+def run_youtube_wisdom_workflow(initial_idea: str, debug: bool = False, asset_dir: str | None = None) -> Dict[str, Any]:
     """Convenience wrapper to run the workflow and return results.
 
     Parameters
@@ -823,6 +881,8 @@ def run_youtube_wisdom_workflow(initial_idea: str, debug: bool = False) -> Dict[
         Raw seed idea for the video.
     debug : bool, optional
         If ``True`` enables verbose logging of all agent interactions.
+    asset_dir : str, optional
+        Directory to save generated image and audio assets.
 
     Notes
     -----
@@ -831,7 +891,7 @@ def run_youtube_wisdom_workflow(initial_idea: str, debug: bool = False) -> Dict[
     score.
     """
     workflow = YouTubeWisdomWorkflow()
-    project = workflow.run(initial_idea, debug=debug)
+    project = workflow.run(initial_idea, debug=debug, asset_dir=asset_dir)
     return {
         "initial_idea": project.initial_idea,
         "enhanced_concept": project.enhanced_concept,
@@ -861,7 +921,8 @@ if __name__ == "__main__":
         "The wise woman who taught happiness through an empty cup",
     ]
 
-    result = run_youtube_wisdom_workflow(ideas[0], debug=debug_mode)
+    asset_output_dir = "assets"
+    result = run_youtube_wisdom_workflow(ideas[0], debug=debug_mode, asset_dir=asset_output_dir)
 
     print("\n=== WORKFLOW RESULTS ===")
     print(f"Story Title: {result['enhanced_concept'].get('enhanced_title', 'N/A')}")
