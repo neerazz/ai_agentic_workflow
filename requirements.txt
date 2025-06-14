@@ -11,3 +11,4 @@ selenium
 webdriver-manager
 notion-client
 langchain_ollama
+crewai
