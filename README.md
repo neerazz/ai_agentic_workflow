@@ -15,7 +15,8 @@ ai-agent-workflow/
 │   ├── __init__.py                # Package for workflow definitions
 │   ├── basic_workflow.py          # Simple SequentialChain example
 │   ├── advanced_workflow.py       # Complex orchestration with decision logic
-│   └── youtube_video_workflow.py  # CrewAI-based YouTube generation workflow
+│   ├── youtube_video_workflow.py  # CrewAI-based YouTube generation workflow
+│   └── youtube_wisdom_workflow.py # Advanced workflow with quality gates
 │
 ├── prompts/
 │   ├── breakdown_prompt.txt       # Prompt template for breakdown tasks
@@ -52,3 +53,4 @@ ai-agent-workflow/
 - **tests/**: Unit and integration tests for robustness.
 - **README.md**: High-level project description, setup, and contribution guidelines.
 - **YouTube workflow**: Generates 4-5 minute inspirational videos for adults using multiple AI models.
+- **Wisdom workflow**: Advanced pipeline with critique loops for higher-quality inspirational videos.
