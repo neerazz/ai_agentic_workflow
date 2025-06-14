@@ -242,7 +242,12 @@ class YouTubeWisdomWorkflow:
         )
 
     def _create_tasks(self, project: VideoProject) -> List[Task]:
-        """Create all tasks with detailed prompts from specifications."""
+        """Create all tasks with detailed prompts from specifications.
+
+        If ``project.story_review`` is populated and ``project.attempts`` is
+        greater than one, the story writing task incorporates the prior review
+        feedback so the workflow can self-correct in subsequent attempts.
+        """
         tasks: List[Task] = []
 
         # Task 1: Creative Director - Concept Enhancement
@@ -286,8 +291,16 @@ class YouTubeWisdomWorkflow:
         tasks.append(enhance_task)
 
         # Task 2: Story Writer - Create Narrative
+        improvement_block = ""
+        if project.story_review and project.attempts > 1:
+            improvement_block = (
+                "\n\nPREVIOUS REVIEW FEEDBACK:\n"
+                f"{json.dumps(project.story_review, indent=2)}\n"
+                "Rewrite the story addressing these points."
+            )
+
         story_task = Task(
-            description="""
+            description=f"""
             Based on the enhanced concept from the Creative Director, write a complete wisdom-based story.
 
             STORY REQUIREMENTS:
@@ -314,7 +327,7 @@ class YouTubeWisdomWorkflow:
             6. RESOLUTION & LESSON (45 seconds): Clear outcome and wisdom teaching
             7. MODERN APPLICATION (30 seconds): How this applies to viewers' lives
 
-            Write the complete narrative story following these guidelines.
+            Write the complete narrative story following these guidelines.{improvement_block}
             """,
             expected_output="Complete 600-800 word narrative story",
             agent=self.story_writer,
@@ -497,6 +510,7 @@ class YouTubeWisdomWorkflow:
         tasks.append(script_enhance_task)
 
         # Task 8: Visual Director - Image Prompts
+        # Executed asynchronously alongside Task 9
         visual_task = Task(
             description="""
             Create detailed image generation prompts for each scene in the enhanced script.
@@ -529,10 +543,12 @@ class YouTubeWisdomWorkflow:
             expected_output="Visual prompts in JSON format",
             agent=self.visual_director,
             context=[script_enhance_task],
+            async_execution=True,
         )
         tasks.append(visual_task)
 
         # Task 9: Sound Designer - Audio Scripts
+        # Runs in parallel with Task 8
         audio_task = Task(
             description="""
             Create comprehensive audio scripts for the enhanced video scenes.
@@ -576,6 +592,7 @@ class YouTubeWisdomWorkflow:
             expected_output="Audio scripts in JSON format",
             agent=self.sound_designer,
             context=[script_enhance_task],
+            async_execution=True,
         )
         tasks.append(audio_task)
 
@@ -655,53 +672,100 @@ class YouTubeWisdomWorkflow:
 
         return tasks
 
-    def run(self, initial_idea: str) -> VideoProject:
-        """Run the complete workflow for wisdom video generation."""
+    STORY_REVIEW_THRESHOLD = 85
+    MAX_RETRIES = 3
+
+    def run(self, initial_idea: str, debug: bool = False) -> VideoProject:
+        """Run the complete workflow for wisdom video generation with self-correction.
+
+        Parameters
+        ----------
+        initial_idea: str
+            The raw idea for the video.
+        debug: bool, optional
+            When ``True`` the workflow emits verbose logs of all agent
+            invocations and parsed outputs.
+
+        Notes
+        -----
+        The Visual Director and Sound Designer steps execute asynchronously
+        to reduce runtime while the script remains sequential elsewhere. If the
+        story review score falls below ``STORY_REVIEW_THRESHOLD`` the entire
+        pipeline automatically retries with the reviewer feedback incorporated.
+        """
         project = VideoProject(initial_idea=initial_idea)
 
-        tasks = self._create_tasks(project)
-        crew = Crew(
-            agents=[
-                self.creative_director,
-                self.story_writer,
-                self.story_reviewer,
-                self.story_enhancer,
-                self.script_writer,
-                self.script_reviewer,
-                self.script_enhancer,
-                self.visual_director,
-                self.sound_designer,
-                self.quality_controller,
-                self.producer,
-            ],
-            tasks=tasks,
-            process=Process.sequential,
-            verbose=True,
-            memory=True,
-            cache=True,
-        )
+        if debug:
+            logging.getLogger().setLevel(logging.DEBUG)
+            logger.debug("Debug logging enabled")
 
-        logger.info("Starting wisdom video generation workflow with review cycles...")
-        result = crew.kickoff()
+        for attempt in range(1, self.MAX_RETRIES + 1):
+            project.attempts = attempt
+            logger.info("Starting workflow attempt %s", attempt)
 
-        try:
-            task_outputs = result.tasks_output
-            project.enhanced_concept = self._parse_json_output(task_outputs[0].raw)
-            project.story_draft = task_outputs[1].raw
-            project.story_review = self._parse_json_output(task_outputs[2].raw)
-            project.enhanced_story = task_outputs[3].raw
-            project.scene_breakdown = self._parse_json_output(task_outputs[4].raw).get("scenes", [])
-            project.script_review = self._parse_json_output(task_outputs[5].raw)
-            project.enhanced_script = self._parse_json_output(task_outputs[6].raw).get("scenes", [])
-            project.visual_prompts = self._parse_json_output(task_outputs[7].raw).get("visual_prompts", [])
-            project.audio_scripts = self._parse_json_output(task_outputs[8].raw).get("audio_scripts", [])
-            project.quality_report = self._parse_json_output(task_outputs[9].raw)
-            project.youtube_metadata = self._parse_json_output(task_outputs[10].raw)
+            tasks = self._create_tasks(project)
+            crew = Crew(
+                agents=[
+                    self.creative_director,
+                    self.story_writer,
+                    self.story_reviewer,
+                    self.story_enhancer,
+                    self.script_writer,
+                    self.script_reviewer,
+                    self.script_enhancer,
+                    self.visual_director,
+                    self.sound_designer,
+                    self.quality_controller,
+                    self.producer,
+                ],
+                tasks=tasks,
+                process=Process.sequential,
+                verbose=debug,
+                memory=True,
+                cache=True,
+            )
 
-            if project.quality_report.get("approval_status") == "APPROVED":
-                project.final_approved = True
-        except Exception as e:
-            logger.error(f"Error processing crew outputs: {e}")
+            result = crew.kickoff()
+
+            try:
+                task_outputs = result.tasks_output
+                project.enhanced_concept = self._parse_json_output(task_outputs[0].raw)
+                logger.debug("Enhanced concept: %s", project.enhanced_concept)
+                project.story_draft = task_outputs[1].raw
+                logger.debug("Story draft: %s", project.story_draft)
+                project.story_review = self._parse_json_output(task_outputs[2].raw)
+                logger.debug("Story review: %s", project.story_review)
+                project.enhanced_story = task_outputs[3].raw
+                logger.debug("Enhanced story: %s", project.enhanced_story)
+                project.scene_breakdown = self._parse_json_output(task_outputs[4].raw).get("scenes", [])
+                logger.debug("Scene breakdown: %s", project.scene_breakdown)
+                project.script_review = self._parse_json_output(task_outputs[5].raw)
+                logger.debug("Script review: %s", project.script_review)
+                project.enhanced_script = self._parse_json_output(task_outputs[6].raw).get("scenes", [])
+                logger.debug("Enhanced script: %s", project.enhanced_script)
+                project.visual_prompts = self._parse_json_output(task_outputs[7].raw).get("visual_prompts", [])
+                logger.debug("Visual prompts: %s", project.visual_prompts)
+                project.audio_scripts = self._parse_json_output(task_outputs[8].raw).get("audio_scripts", [])
+                logger.debug("Audio scripts: %s", project.audio_scripts)
+                project.quality_report = self._parse_json_output(task_outputs[9].raw)
+                logger.debug("Quality report: %s", project.quality_report)
+                project.youtube_metadata = self._parse_json_output(task_outputs[10].raw)
+                logger.debug("YouTube metadata: %s", project.youtube_metadata)
+
+                if project.quality_report.get("approval_status") == "APPROVED":
+                    project.final_approved = True
+
+                score = project.story_review.get("overall_score", 0)
+                logger.info("Story review score: %s", score)
+                if score >= self.STORY_REVIEW_THRESHOLD or attempt == self.MAX_RETRIES:
+                    break
+                logger.info(
+                    "Score below threshold %s, retrying...",
+                    self.STORY_REVIEW_THRESHOLD,
+                )
+            except Exception as e:
+                logger.error(f"Error processing crew outputs: {e}")
+                break
 
         return project
 
@@ -718,10 +782,24 @@ class YouTubeWisdomWorkflow:
             return {}
 
 
-def run_youtube_wisdom_workflow(initial_idea: str) -> Dict[str, Any]:
-    """Convenience wrapper to run the workflow and return results."""
+def run_youtube_wisdom_workflow(initial_idea: str, debug: bool = False) -> Dict[str, Any]:
+    """Convenience wrapper to run the workflow and return results.
+
+    Parameters
+    ----------
+    initial_idea : str
+        Raw seed idea for the video.
+    debug : bool, optional
+        If ``True`` enables verbose logging of all agent interactions.
+
+    Notes
+    -----
+    Visual and audio generation run concurrently within the workflow. The story
+    phase automatically retries if the initial draft receives a low review
+    score.
+    """
     workflow = YouTubeWisdomWorkflow()
-    project = workflow.run(initial_idea)
+    project = workflow.run(initial_idea, debug=debug)
     return {
         "initial_idea": project.initial_idea,
         "enhanced_concept": project.enhanced_concept,
@@ -741,7 +819,8 @@ def run_youtube_wisdom_workflow(initial_idea: str) -> Dict[str, Any]:
 
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO)
+    debug_mode = True
+    logging.basicConfig(level=logging.DEBUG if debug_mode else logging.INFO)
 
     ideas = [
         "A monk who waited 10 years to ask one question",
@@ -750,7 +829,7 @@ if __name__ == "__main__":
         "The wise woman who taught happiness through an empty cup",
     ]
 
-    result = run_youtube_wisdom_workflow(ideas[0])
+    result = run_youtube_wisdom_workflow(ideas[0], debug=debug_mode)
 
     print("\n=== WORKFLOW RESULTS ===")
     print(f"Story Title: {result['enhanced_concept'].get('enhanced_title', 'N/A')}")
