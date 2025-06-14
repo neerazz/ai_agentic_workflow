@@ -22,6 +22,7 @@ from langchain.tools import Tool
 from src.ai_agentic_workflow.clients.chatgpt_client import DualModelChatClient
 from src.ai_agentic_workflow.clients.gemini_client import DualModelGeminiClient
 from src.ai_agentic_workflow.clients.claude_client import DualModelClaudeClient
+from src.ai_agentic_workflow.utils.media_utils import create_media_files
 
 logger = logging.getLogger(__name__)
 
@@ -809,8 +810,12 @@ class YouTubeWisdomWorkflow:
                 logger.error(f"Error processing crew outputs: {e}")
                 break
 
-        if asset_dir:
-            self.generate_assets(project, asset_dir)
+        if project.visual_prompts and project.enhanced_script:
+            try:
+                create_media_files(project.visual_prompts, project.enhanced_script)
+            except Exception as e:  # pragma: no cover - external calls
+                logger.error("Media generation failed: %s", e)
+
         return project
 
     def _parse_json_output(self, raw_output: str) -> Dict[str, Any]:
