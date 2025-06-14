@@ -6,19 +6,19 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 logger = logging.getLogger(__name__)
 
 
-def _init_():
+def _init_() -> Path:
+    """Return the prompts directory for this package."""
     try:
         # Assumes this script is somewhere within your project structure
-        # Adjust the number of parents if needed
         package_root = Path(__file__).resolve().parents[1]
-        prompts_dir = package_root / "prompts"
-        prompts_dir.mkdir(parents=True, exist_ok=True)
-        return prompts_dir
     except NameError:
         # Fallback if __file__ is not defined (e.g., interactive session)
-        # Set this path manually if the above doesn't work in your environment
-        PACKAGE_ROOT = Path('.').resolve()  # Example: current directory
-        print(f"Warning: __file__ not defined. Using fallback PACKAGE_ROOT: {PACKAGE_ROOT}")
+        package_root = Path(".").resolve()
+        print(f"Warning: __file__ not defined. Using fallback PACKAGE_ROOT: {package_root}")
+
+    prompts_dir = package_root / "prompts"
+    prompts_dir.mkdir(parents=True, exist_ok=True)
+    return prompts_dir
 
 
 def get_prompt_content(prompt_name: str = None, file_name: str = None) -> str | None:
