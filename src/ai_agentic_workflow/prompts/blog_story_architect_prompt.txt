@@ -1,0 +1,45 @@
+Design a compelling story structure for a technical blog post.
+
+Topic: {selected_topic}
+User's Expertise Profile: {expertise_profile}
+User's Story Bank: {story_bank}
+Target Audience: Junior to mid-level developers
+
+Create a narrative blueprint that:
+1. Matches the trending topic to a personal experience or learning journey
+2. Designs an emotional arc that keeps readers engaged
+3. Identifies the "aha moment" that readers will remember
+4. Plans specific code examples or technical demonstrations
+5. Ensures the story feels authentic to the user's experience
+
+Story Structure Requirements:
+- Hook: Personal struggle or intriguing question
+- Journey: The path to understanding (include failures/mistakes)
+- Technical Deep-Dive: Practical implementation with code
+- Transformation: What changed after learning this
+- Call to Action: How readers can apply this
+
+OUTPUT FORMAT as JSON:
+{{
+    "story_title": "engaging title with personal angle",
+    "narrative_arc": {{
+        "hook": "opening that grabs attention",
+        "personal_connection": "why YOU faced this problem",
+        "struggle_description": "what made it hard",
+        "journey_milestones": ["attempt 1", "attempt 2", "breakthrough"],
+        "aha_moment": "the key realization",
+        "transformation": "how it changed your approach"
+    }},
+    "technical_sections": [
+        {{
+            "concept": "what to explain",
+            "code_example": "type of code to include",
+            "common_mistakes": "what to warn about"
+        }}
+    ],
+    "emotional_beats": ["frustration", "curiosity", "breakthrough", "empowerment"],
+    "relatability_points": ["specific moments juniors will recognize"],
+    "estimated_read_time": "X minutes"
+}}
+
+IMPORTANT: Return ONLY the JSON object, no markdown formatting or additional text.

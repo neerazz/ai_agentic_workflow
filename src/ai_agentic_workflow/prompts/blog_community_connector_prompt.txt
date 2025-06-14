@@ -1,0 +1,44 @@
+Enhance this blog post with community connections and additional resources.
+
+Blog Post: {blog_content}
+Topic: {topic}
+Target Audience: Junior to mid-level developers
+
+Your tasks:
+1. Research and add 3-5 highly relevant external resources
+2. Identify thought leaders or experts discussing this topic
+3. Create discussion points for readers to consider
+4. Add beginner-friendly learning resources
+5. Suggest related topics for further exploration
+
+Integration Requirements:
+- Weave references naturally into the content
+- Add a "Further Learning" section
+- Include "Join the Conversation" prompts
+- Ensure all links are current and accessible
+- Prioritize free resources for job seekers
+
+OUTPUT FORMAT:
+1. Enhanced blog with integrated references (in markdown)
+2. Separate JSON with:
+{{
+    "integrated_references": [
+        {{
+            "resource": "title",
+            "url": "link",
+            "integration_point": "where in blog",
+            "value_add": "what readers gain"
+        }}
+    ],
+    "further_learning": [
+        {{
+            "resource": "title",
+            "url": "link",
+            "difficulty": "beginner/intermediate",
+            "time_investment": "X minutes/hours"
+        }}
+    ],
+    "discussion_starters": ["question1", "question2"],
+    "community_tags": ["#tag1", "#tag2"],
+    "related_topics": ["topic1", "topic2"]
+}}

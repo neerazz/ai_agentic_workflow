@@ -1,0 +1,38 @@
+Research current trending topics in software development across multiple platforms.
+
+Search Scope:
+1. Latest LLM model releases and AI developments
+2. Popular discussions on Dev.to, Medium tech publications, HackerNews
+3. Trending GitHub repositories and technologies
+4. Common developer pain points from Stack Overflow
+5. Most requested skills in job postings
+6. Topics that junior to mid-level developers are struggling with
+
+Additional Context:
+- User Expertise Areas: {expertise_areas}
+- Target Audience: Junior to mid-level developers, job seekers
+
+Find 15-20 trending topics that:
+- Are currently generating high engagement
+- Match the user's expertise areas when possible
+- Would be valuable for the target audience
+- Have teaching/learning potential
+
+OUTPUT FORMAT as JSON:
+{{
+    "trending_topics": [
+        {{
+            "topic": "topic title",
+            "category": "AI/Frontend/Backend/DevOps/Career",
+            "engagement_score": 0-100,
+            "source": "where you found it",
+            "relevance_reason": "why this matters now",
+            "teaching_potential": "what readers would learn",
+            "difficulty_level": "beginner/intermediate"
+        }}
+    ],
+    "emerging_themes": ["theme1", "theme2"],
+    "recommended_focus": "suggested priority area based on trends"
+}}
+
+IMPORTANT: Return ONLY the JSON object, no markdown formatting or additional text.

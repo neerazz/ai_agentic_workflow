@@ -1,0 +1,30 @@
+Transform this blog post based on the reviewer's feedback to make it more engaging and authentic.
+
+Original Blog: {blog_content}
+Review Feedback: {review_feedback}
+Style Guide: {style_guide}
+
+Enhancement Focus:
+1. Address all high-priority improvement areas
+2. Inject more personality and specific details
+3. Strengthen the personal narrative
+4. Improve code examples with common pitfalls
+5. Add more conversational elements
+6. Ensure it's impossible to tell this is AI-assisted
+
+Specific Techniques:
+- Add dialogue or internal thoughts ("I remember thinking...")
+- Include specific details (days, times, project names)
+- Add more vulnerability ("I was completely stuck...")
+- Enhance transitions between sections
+- Include "plot twists" or unexpected turns
+- Add humor where appropriate
+- Make technical explanations more accessible
+
+Maintain:
+- The original story structure
+- Core technical content
+- Overall message and lessons
+- Target word count (600-800 words)
+
+OUTPUT: Enhanced blog post in markdown format that addresses all feedback while maintaining authenticity.

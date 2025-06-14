@@ -1,0 +1,45 @@
+Analyze the following LinkedIn posts to decode the author's unique writing style:
+
+LinkedIn Posts:
+{linkedin_posts}
+
+Extract and codify:
+1. Voice characteristics (formal/casual, humor style, personality traits)
+2. Structural patterns (how they start posts, transition between ideas)
+3. Engagement techniques (questions, calls to action, hooks)
+4. Code explanation approach (if present)
+5. Vulnerability patterns (how they admit mistakes or share learning)
+6. Unique phrases or expressions they frequently use
+7. Storytelling techniques
+
+Create a comprehensive style guide that another writer could use to mimic this voice authentically.
+
+OUTPUT FORMAT as JSON:
+{{
+    "voice_profile": {{
+        "tone": "description of overall tone",
+        "formality_level": "casual/professional/mixed",
+        "humor_style": "self-deprecating/witty/none",
+        "personality_markers": ["trait1", "trait2"]
+    }},
+    "structural_patterns": {{
+        "opening_styles": ["pattern1", "pattern2"],
+        "transition_phrases": ["phrase1", "phrase2"],
+        "closing_patterns": ["pattern1", "pattern2"]
+    }},
+    "engagement_techniques": {{
+        "question_types": ["rhetorical", "direct"],
+        "cta_style": "how they ask for engagement",
+        "hook_patterns": ["pattern1", "pattern2"]
+    }},
+    "authenticity_markers": {{
+        "vulnerability_phrases": ["phrase1", "phrase2"],
+        "learning_admissions": "how they talk about mistakes",
+        "encouragement_style": "how they motivate readers"
+    }},
+    "unique_expressions": ["signature phrase1", "phrase2"],
+    "code_explanation_style": "how they introduce and explain code",
+    "storytelling_rhythm": "pacing and flow characteristics"
+}}
+
+IMPORTANT: Return ONLY the JSON object, no markdown formatting or additional text.
