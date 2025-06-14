@@ -15,8 +15,8 @@ ai-agent-workflow/
 │   ├── __init__.py                # Package for workflow definitions
 │   ├── basic_workflow.py          # Simple SequentialChain example
 │   ├── advanced_workflow.py       # Complex orchestration with decision logic
-│   ├── youtube_video_workflow.py  # CrewAI-based YouTube generation workflow
 │   └── youtube_wisdom_workflow.py # Advanced workflow with quality gates
+│   └── youtube_video_workflow.py  # CrewAI-based YouTube generation workflow
 │
 ├── prompts/
 │   ├── breakdown_prompt.txt       # Prompt template for breakdown tasks
