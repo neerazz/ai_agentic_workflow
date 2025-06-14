@@ -6,9 +6,15 @@ from __future__ import annotations
 
 import logging
 import json
+import os
 import re
+from pathlib import Path
 from dataclasses import dataclass, field
 from typing import Dict, Any, List, Optional
+
+import requests
+import openai
+import google.generativeai as genai
 
 from crewai import Agent, Task, Crew, Process
 from langchain.tools import Tool
@@ -224,7 +230,7 @@ class YouTubeWisdomWorkflow:
             ),
             llm=self.o3_mini_client.get_llm(),
             verbose=True,
-            allow_delegation=True,
+            allow_delegation=False,
         )
 
         # 11. Producer (GPT-4) - YouTube Optimization
@@ -284,6 +290,7 @@ class YouTubeWisdomWorkflow:
                 "emotional_journey": "arc from struggle to transformation",
                 "key_takeaway": "memorable closing message"
             }}
+            IMPORTANT: Your entire response must be ONLY the JSON object, without any introductory text, comments, or markdown formatting like ```json.
             """,
             expected_output="Enhanced concept in JSON format",
             agent=self.creative_director,
@@ -366,6 +373,7 @@ class YouTubeWisdomWorkflow:
                 "specific_improvements": ["improvement1", "improvement2"],
                 "strong_points": ["strength1", "strength2"]
             }}
+            IMPORTANT: Your entire response must be ONLY the JSON object, without any introductory text, comments, or markdown formatting like ```json.
             """,
             expected_output="Story review with scores and feedback in JSON format",
             agent=self.story_reviewer,
@@ -402,8 +410,16 @@ class YouTubeWisdomWorkflow:
         tasks.append(story_enhance_task)
 
         # Task 5: Script Writer - Scene Breakdown
+        script_improvement_block = ""
+        if project.script_review and project.attempts > 1:
+            script_improvement_block = (
+                "\n\nPREVIOUS SCRIPT REVIEW FEEDBACK:\n"
+                f"{json.dumps(project.script_review, indent=2)}\n"
+                "Rewrite the script addressing these points."
+            )
+
         script_task = Task(
-            description="""
+            description=f"""
             Transform the enhanced wisdom story into a detailed scene-by-scene script optimized for a 4-5 minute video.
 
             SCRIPT CONVERSION GUIDELINES:
@@ -441,6 +457,8 @@ class YouTubeWisdomWorkflow:
                     }}
                 ]
             }}
+            {script_improvement_block}
+            IMPORTANT: Your entire response must be ONLY the JSON object, without any introductory text, comments, or markdown formatting like ```json.
             """,
             expected_output="Scene breakdown in JSON format",
             agent=self.script_writer,
@@ -477,6 +495,7 @@ class YouTubeWisdomWorkflow:
                 "scene_specific_feedback": {{"scene_X": "feedback"}},
                 "improvement_suggestions": ["suggestion1", "suggestion2"]
             }}
+            IMPORTANT: Your entire response must be ONLY the JSON object, without any introductory text, comments, or markdown formatting like ```json.
             """,
             expected_output="Script review with detailed feedback in JSON format",
             agent=self.script_reviewer,
@@ -502,6 +521,7 @@ class YouTubeWisdomWorkflow:
             Maintain the 4-5 minute total duration while incorporating all improvements.
 
             OUTPUT FORMAT: Same JSON structure as the original script with all enhancements applied.
+            IMPORTANT: Your entire response must be ONLY the JSON object, without any introductory text, comments, or markdown formatting like ```json.
             """,
             expected_output="Enhanced scene breakdown in JSON format",
             agent=self.script_enhancer,
@@ -532,13 +552,15 @@ class YouTubeWisdomWorkflow:
                 "symbolic_elements": ["element1", "element2"],
                 "composition": "camera angle and framing",
                 "mood": "overall feeling",
-                "style_modifiers": ["cinematic", "contemplative", "spiritual"]
+                "style_modifiers": ["cinematic", "contemplative", "spiritual"],
+                "aspect_ratio": "16:9",
             }}
 
             OUTPUT FORMAT as JSON:
             {{
                 "visual_prompts": [array of prompt objects for each scene]
             }}
+            IMPORTANT: Your entire response must be ONLY the JSON object, without any introductory text, comments, or markdown formatting like ```json.
             """,
             expected_output="Visual prompts in JSON format",
             agent=self.visual_director,
@@ -588,6 +610,7 @@ class YouTubeWisdomWorkflow:
             {{
                 "audio_scripts": [array of audio direction objects for each scene]
             }}
+            IMPORTANT: Your entire response must be ONLY the JSON object, without any introductory text, comments, or markdown formatting like ```json.
             """,
             expected_output="Audio scripts in JSON format",
             agent=self.sound_designer,
@@ -624,6 +647,7 @@ class YouTubeWisdomWorkflow:
                 "revision_recommendations": ["specific improvements needed"],
                 "quality_score": 0-100
             }}
+            IMPORTANT: Your entire response must be ONLY the JSON object, without any introductory text, comments, or markdown formatting like ```json.
             """,
             expected_output="Quality validation report in JSON format",
             agent=self.quality_controller,
@@ -635,6 +659,7 @@ class YouTubeWisdomWorkflow:
         youtube_task = Task(
             description="""
             Create optimized YouTube metadata for maximum reach and engagement.
+            Before generating metadata, check the Quality Controller's report. If approval_status is "NEEDS_REVISION", return placeholder metadata and highlight required fixes.
 
             OPTIMIZATION REQUIREMENTS:
             - Title: Transformation promise with wisdom authority (50-70 characters)
@@ -663,6 +688,7 @@ class YouTubeWisdomWorkflow:
                 }},
                 "engagement_strategy": "community interaction plan"
             }}
+            IMPORTANT: Your entire response must be ONLY the JSON object, without any introductory text, comments, or markdown formatting like ```json.
             """,
             expected_output="YouTube optimization package in JSON format",
             agent=self.producer,
@@ -674,8 +700,9 @@ class YouTubeWisdomWorkflow:
 
     STORY_REVIEW_THRESHOLD = 85
     MAX_RETRIES = 3
+    SCRIPT_REVIEW_THRESHOLD = 85
 
-    def run(self, initial_idea: str, debug: bool = False) -> VideoProject:
+    def run(self, initial_idea: str, debug: bool = False, asset_dir: str | None = None) -> VideoProject:
         """Run the complete workflow for wisdom video generation with self-correction.
 
         Parameters
@@ -685,6 +712,10 @@ class YouTubeWisdomWorkflow:
         debug: bool, optional
             When ``True`` the workflow emits verbose logs of all agent
             invocations and parsed outputs.
+
+        asset_dir: str, optional
+            Directory to save generated image and audio assets. If ``None`` no
+            assets are created.
 
         Notes
         -----
@@ -754,19 +785,32 @@ class YouTubeWisdomWorkflow:
 
                 if project.quality_report.get("approval_status") == "APPROVED":
                     project.final_approved = True
+                else:
+                    logger.warning(
+                        "Quality control failed with status: %s",
+                        project.quality_report.get("approval_status"),
+                    )
+                    project.youtube_metadata = {}
 
                 score = project.story_review.get("overall_score", 0)
+                script_score = project.script_review.get("overall_score", 0)
                 logger.info("Story review score: %s", score)
-                if score >= self.STORY_REVIEW_THRESHOLD or attempt == self.MAX_RETRIES:
+                logger.info("Script review score: %s", script_score)
+                if (score >= self.STORY_REVIEW_THRESHOLD and script_score >= self.SCRIPT_REVIEW_THRESHOLD) or attempt == self.MAX_RETRIES:
                     break
                 logger.info(
-                    "Score below threshold %s, retrying...",
+                    "Scores below threshold (story %s/<%s>, script %s/<%s>), retrying...",
+                    score,
                     self.STORY_REVIEW_THRESHOLD,
+                    script_score,
+                    self.SCRIPT_REVIEW_THRESHOLD,
                 )
             except Exception as e:
                 logger.error(f"Error processing crew outputs: {e}")
                 break
 
+        if asset_dir:
+            self.generate_assets(project, asset_dir)
         return project
 
     def _parse_json_output(self, raw_output: str) -> Dict[str, Any]:
@@ -781,8 +825,54 @@ class YouTubeWisdomWorkflow:
             logger.error(f"JSON parsing error: {e}")
             return {}
 
+    def generate_assets(self, project: VideoProject, output_dir: str) -> None:
+        """Generate images and audio for each scene using external models."""
+        if not output_dir:
+            return
+        Path(output_dir).mkdir(parents=True, exist_ok=True)
 
-def run_youtube_wisdom_workflow(initial_idea: str, debug: bool = False) -> Dict[str, Any]:
+        openai.api_key = os.getenv("OPENAI_API_KEY")
+        genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
+
+        for prompt in project.visual_prompts or []:
+            scene = prompt.get("scene_number")
+            desc = prompt.get("main_subject", "scene")
+            slug = re.sub(r"[^a-zA-Z0-9]+", "_", desc.lower())[:50].strip("_")
+            img_path = Path(output_dir) / f"{scene:02d}_{slug}.png"
+            try:
+                prompt_text = (
+                    f"{prompt.get('main_subject', '')}, {prompt.get('setting', '')}, "
+                    f"{prompt.get('lighting', '')}, {prompt.get('color_palette', '')}"
+                )
+                resp = openai.images.generate(
+                    model="dall-e-3",
+                    prompt=prompt_text,
+                    n=1,
+                    size="1024x576",
+                )
+                url = resp.data[0].url
+                data = requests.get(url, timeout=30).content
+                with open(img_path, "wb") as f:
+                    f.write(data)
+            except Exception as e:
+                logger.error("Image generation failed for scene %s: %s", scene, e)
+
+        for scene in project.enhanced_script or []:
+            num = scene.get("scene_number")
+            text = scene.get("narration", "")
+            slug = re.sub(r"[^a-zA-Z0-9]+", "_", text[:20].lower()).strip("_")
+            audio_path = Path(output_dir) / f"{num:02d}_{slug}.mp3"
+            try:
+                model = genai.GenerativeModel("gemini-2.5-pro-preview-tts")
+                resp = model.generate_content(text)
+                audio_bytes = resp.audio
+                with open(audio_path, "wb") as f:
+                    f.write(audio_bytes)
+            except Exception as e:
+                logger.error("Audio generation failed for scene %s: %s", num, e)
+
+
+def run_youtube_wisdom_workflow(initial_idea: str, debug: bool = False, asset_dir: str | None = None) -> Dict[str, Any]:
     """Convenience wrapper to run the workflow and return results.
 
     Parameters
@@ -791,6 +881,8 @@ def run_youtube_wisdom_workflow(initial_idea: str, debug: bool = False) -> Dict[
         Raw seed idea for the video.
     debug : bool, optional
         If ``True`` enables verbose logging of all agent interactions.
+    asset_dir : str, optional
+        Directory to save generated image and audio assets.
 
     Notes
     -----
@@ -799,7 +891,7 @@ def run_youtube_wisdom_workflow(initial_idea: str, debug: bool = False) -> Dict[
     score.
     """
     workflow = YouTubeWisdomWorkflow()
-    project = workflow.run(initial_idea, debug=debug)
+    project = workflow.run(initial_idea, debug=debug, asset_dir=asset_dir)
     return {
         "initial_idea": project.initial_idea,
         "enhanced_concept": project.enhanced_concept,
@@ -829,7 +921,8 @@ if __name__ == "__main__":
         "The wise woman who taught happiness through an empty cup",
     ]
 
-    result = run_youtube_wisdom_workflow(ideas[0], debug=debug_mode)
+    asset_output_dir = "assets"
+    result = run_youtube_wisdom_workflow(ideas[0], debug=debug_mode, asset_dir=asset_output_dir)
 
     print("\n=== WORKFLOW RESULTS ===")
     print(f"Story Title: {result['enhanced_concept'].get('enhanced_title', 'N/A')}")
