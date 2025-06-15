@@ -1,0 +1,36 @@
+Analyze the following LinkedIn profile data to extract expertise and potential story narratives:
+
+Profile Data:
+{profile_data}
+
+Your task:
+1. Identify all technical skills and years of experience with each
+2. Extract potential "story moments" from job transitions and projects
+3. Find struggle-to-success narratives that could be used in blog posts
+4. Map technologies to real scenarios from their career
+5. Identify career progression patterns and learning moments
+
+Focus on finding human stories behind the technical experience that would resonate with junior to mid-level developers.
+
+OUTPUT FORMAT as JSON:
+{{
+    "technical_expertise": {{
+        "technology_name": {{
+            "years": X,
+            "proficiency": "expert/intermediate/learning",
+            "story_snippets": ["specific project or challenge", "another story"]
+        }}
+    }},
+    "career_stories": [
+        {{
+            "type": "challenge/learning/mentoring/success",
+            "summary": "brief story description",
+            "technologies": ["tech1", "tech2"],
+            "lesson": "what readers can learn"
+        }}
+    ],
+    "writing_angles": ["angle1", "angle2"],
+    "target_audience_alignment": "how experience matches junior/mid dev needs"
+}}
+
+IMPORTANT: Return ONLY the JSON object, no markdown formatting or additional text.

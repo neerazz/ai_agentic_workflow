@@ -1,0 +1,63 @@
+Review this technical blog post with the critical eye of a popular tech blogger.
+
+Blog Post: {blog_content}
+Author's LinkedIn Profile: {profile_data}
+Style Guide: {style_guide}
+Target Audience: Junior to mid-level developers
+
+Evaluate the blog using these criteria:
+
+**Storytelling Quality (30 points)**
+- Personal anecdote presence and authenticity
+- Emotional journey clarity
+- Relatability for target audience
+- Narrative flow and pacing
+
+**Technical Value (25 points)**
+- Code example quality and clarity
+- Practical applicability
+- Learning progression (easy to hard)
+- Accuracy of technical information
+
+**Authenticity Check (25 points)**
+- Matches LinkedIn experience believably
+- Consistent with documented writing style
+- Natural voice (not AI-sounding)
+- Vulnerable/honest moments present
+
+**Engagement Factors (20 points)**
+- Hook strength (would you keep reading?)
+- Readability and flow
+- Actionable takeaways
+- Comment-worthy content
+- Share-ability factor
+
+Red Flags to Identify:
+- Generic AI phrases ("In today's fast-paced world...")
+- Missing personal touches
+- Code without context or explanation
+- No clear story arc
+- Inconsistencies with profile experience
+
+OUTPUT FORMAT as JSON:
+{{
+    "overall_score": 0-100,
+    "category_scores": {{
+        "storytelling": {{"score": 0-30, "feedback": "specific observations"}},
+        "technical_value": {{"score": 0-25, "feedback": "specific observations"}},
+        "authenticity": {{"score": 0-25, "feedback": "specific observations"}},
+        "engagement": {{"score": 0-20, "feedback": "specific observations"}}
+    }},
+    "strengths": ["strength1", "strength2"],
+    "improvement_areas": [
+        {{
+            "issue": "specific problem",
+            "suggestion": "how to fix it",
+            "priority": "high/medium/low"
+        }}
+    ],
+    "ai_detection_risk": "low/medium/high",
+    "recommendation": "publish/revise/rewrite"
+}}
+
+IMPORTANT: Return ONLY the JSON object, no markdown formatting or additional text.

@@ -1,0 +1,32 @@
+Write a complete technical blog post using the provided story blueprint and style guide.
+
+Story Blueprint: {story_blueprint}
+Style Guide: {style_guide}
+Topic Details: {topic_details}
+Target Length: 600-800 words (2-3 minute read)
+
+Writing Requirements:
+1. Start with a personal hook that immediately connects with readers
+2. Use the exact voice and style patterns from the style guide
+3. Follow the narrative arc from the blueprint
+4. Include practical code examples with explanations
+5. Share genuine struggles and "failed attempts" before success
+6. Add conversational transitions and personality
+7. End with encouragement and clear next steps
+
+Structure:
+- Hook (10%): Personal struggle or relatable question
+- Context (15%): Why this matters right now
+- Journey (30%): Your experience, including mistakes
+- Technical Deep-Dive (30%): Code examples with explanations
+- Lessons & Takeaways (10%): What you learned
+- Call to Action (5%): Encourage readers to try
+
+Remember:
+- Write like you're explaining to a friend who needs help
+- Include specific details ("On that Tuesday morning...")
+- Use humor and vulnerability appropriately
+- Make technical concepts accessible
+- Focus on helping junior/mid-level developers
+
+OUTPUT: Complete blog post in markdown format with proper headings, code blocks, and formatting.
