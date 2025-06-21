@@ -566,6 +566,9 @@ Write the complete blog post in markdown format.
                                 <button class="btn btn-sm btn-outline-info" onclick="showDebugInfo(5)">
                                     <i class="fas fa-bug"></i> Debug Data
                                 </button>
+                                <button class="btn btn-sm btn-outline-warning" onclick="fixSelectedTopic()">
+                                    <i class="fas fa-wrench"></i> Fix Topic
+                                </button>
                             </div>
                         </div>
 
@@ -1066,6 +1069,25 @@ Return the enhanced blog with these sections added naturally.
         function generateBlogPrompt() {
             console.log('\n📝 Generating blog crafting prompt...');
             
+            // FIRST: Check if selectedTopic is corrupted (string instead of object) and auto-fix
+            if (typeof workflowData.selectedTopic === 'string' && workflowData.trendingTopics) {
+                const topicIndex = parseInt(workflowData.selectedTopic);
+                if (!isNaN(topicIndex) && workflowData.trendingTopics[topicIndex]) {
+                    console.log('🔧 Auto-fixing corrupted selectedTopic from string to object');
+                    workflowData.selectedTopic = workflowData.trendingTopics[topicIndex];
+                    
+                    // Also update the dropdown to match
+                    const select = document.getElementById('selectedTopic');
+                    if (select) {
+                        select.value = topicIndex;
+                        displaySelectedTopicDetails(workflowData.selectedTopic);
+                    }
+                    
+                    console.log('✅ Fixed selectedTopic:', workflowData.selectedTopic);
+                    saveCurrentInputs();
+                }
+            }
+            
             // Log current workflow data state
             console.log('📊 Current workflow data state:');
             console.log('  - Story Blueprint exists:', !!workflowData.storyBlueprint);
@@ -1112,24 +1134,8 @@ Return the enhanced blog with these sections added naturally.
                 console.log('  - Available trending topics:', workflowData.trendingTopics);
                 console.log('  - Dropdown value:', document.getElementById('selectedTopic')?.value);
                 
-                // Try to auto-fix if dropdown has a value but selectedTopic is wrong
-                const dropdownValue = document.getElementById('selectedTopic')?.value;
-                if (dropdownValue && workflowData.trendingTopics && workflowData.trendingTopics[dropdownValue]) {
-                    console.log('🔧 Attempting to auto-fix selectedTopic from dropdown');
-                    workflowData.selectedTopic = workflowData.trendingTopics[dropdownValue];
-                    saveCurrentInputs();
-                    console.log('✅ Auto-fixed selectedTopic:', workflowData.selectedTopic);
-                    // Retry validation
-                    if (workflowData.selectedTopic && typeof workflowData.selectedTopic === 'object' && workflowData.selectedTopic.topic) {
-                        console.log('✅ Auto-fix successful, continuing with prompt generation');
-                    } else {
-                        alert('Please go to Step 3 and select a topic from the dropdown first.');
-                        return;
-                    }
-                } else {
-                    alert('Please complete Step 2 (Trend Research) and select a topic first.\n\nTip: Make sure you select a topic from the dropdown in Step 3.');
-                    return;
-                }
+                alert('Please go to Step 3 and select a topic from the dropdown first.\n\nThe topic selection appears to be corrupted. Try selecting the topic again from the dropdown.');
+                return;
             }
 
             console.log('✅ All validations passed, generating prompt...');
@@ -1718,6 +1724,42 @@ Return the enhanced blog with these sections added naturally.
             debugInfo += `CHECK CONSOLE for full data objects that you can copy/paste!`;
             
             alert(debugInfo);
+        }
+
+        function fixSelectedTopic() {
+            console.log('\n🔧 Manual fix for selectedTopic...');
+            
+            if (typeof workflowData.selectedTopic === 'string' && workflowData.trendingTopics) {
+                const topicIndex = parseInt(workflowData.selectedTopic);
+                console.log('🔍 Found string selectedTopic:', workflowData.selectedTopic, 'parsing as index:', topicIndex);
+                
+                if (!isNaN(topicIndex) && workflowData.trendingTopics[topicIndex]) {
+                    const fixedTopic = workflowData.trendingTopics[topicIndex];
+                    workflowData.selectedTopic = fixedTopic;
+                    
+                    // Update the dropdown
+                    const select = document.getElementById('selectedTopic');
+                    if (select) {
+                        select.value = topicIndex;
+                        displaySelectedTopicDetails(fixedTopic);
+                    }
+                    
+                    // Save the fix
+                    localStorage.setItem('blogWorkflowData', JSON.stringify(workflowData));
+                    
+                    console.log('✅ Fixed selectedTopic:', fixedTopic);
+                    alert(`✅ Fixed! Selected topic is now: "${fixedTopic.topic}"`);
+                } else {
+                    console.log('❌ Cannot parse topic index or invalid index');
+                    alert('❌ Cannot fix: Invalid topic index');
+                }
+            } else if (typeof workflowData.selectedTopic === 'object') {
+                console.log('✅ selectedTopic is already an object');
+                alert('✅ selectedTopic is already correct (object type)');
+            } else {
+                console.log('❌ No trending topics available for fix');
+                alert('❌ Cannot fix: No trending topics available');
+            }
         }
 
         function resetWorkflow() {
