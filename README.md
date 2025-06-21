@@ -1,7 +1,10 @@
 # Project: AI Agent Workflow
 
 ## 📁 Project Structure
-```
+
+This project is organized to facilitate the development and execution of AI-driven workflows using multiple AI models. Below is an overview of the directory structure and its responsibilities.
+
+```plaintext
 ai-agent-workflow/
 ├── .env                          # Environment variables for API keys
 ├── clients/
@@ -44,6 +47,7 @@ ai-agent-workflow/
 ```
 
 ### Directory Responsibilities
+
 - **[clients/](src/ai_agentic_workflow/clients/)**: Contains one module per AI provider, each defining dual-model facades and `__call__` methods.
 - **[workflows/](src/ai_agentic_workflow/workflows/)**: Defines chains that orchestrate multiple clients. Split into simple vs. advanced pipelines.
 - **[prompts/](src/ai_agentic_workflow/prompts/)**: Stores prompt templates in text files for easy editing and reuse.
@@ -56,3 +60,67 @@ ai-agent-workflow/
 - **README.md**: High-level project description, setup, and contribution guidelines.
 - **YouTube workflow**: Generates 4-5 minute inspirational videos for adults using multiple AI models.
 - **Wisdom workflow**: Advanced pipeline with critique loops for higher-quality inspirational videos.
+
+## 🚀 Setup Instructions
+
+### Prerequisites
+
+- Python 3.9 or higher
+- pip (Python package installer)
+- Git
+
+### Installation Steps
+
+1. Clone the repository:
+
+   ```bash
+   git clone https://github.com/yourusername/ai-agent-workflow.git
+   cd ai-agent-workflow
+   ```
+
+2. Create and activate a virtual environment (recommended):
+
+   ```bash
+   # On Windows
+   python -m venv venv
+   .\venv\Scripts\activate
+
+   # On macOS/Linux
+   python -m venv venv
+   source venv/bin/activate
+   ```
+
+3. Install dependencies:
+
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+4. Set up environment variables:
+   - Copy the `.env.example` file to `.env`
+   - Fill in your API keys and other required variables in the `.env` file:
+
+     ```ini
+     OPENAI_API_KEY=your_openai_api_key
+     ANTHROPIC_API_KEY=your_anthropic_api_key
+     PERPLEXITY_API_KEY=your_perplexity_api_key
+     GOOGLE_API_KEY=your_google_api_key
+     ```
+
+### Running Tests
+
+To ensure everything is set up correctly, run the test suite:
+
+```bash
+python -m pytest tests/
+```
+
+### Running Examples
+
+Check out the example scripts in the `workflows/` directory to get started:
+
+```bash
+python workflows/blog_creation_workflow.py
+```
+
+For more detailed examples and usage, refer to the Jupyter notebook in `notebooks/agent_workflow.ipynb`.
