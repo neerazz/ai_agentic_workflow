@@ -1,0 +1,793 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Agentic Blog Creation Workflow</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            margin: 20px;
+            background-color: #f4f4f4;
+            color: #333;
+        }
+        .container {
+            max-width: 900px;
+            margin: auto;
+            background: #fff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        h1, h2 {
+            color: #0056b3;
+            text-align: center;
+        }
+        .step-section {
+            border: 1px solid #ddd;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+            background-color: #fdfdfd;
+        }
+        .step-section.hidden {
+            display: none;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+        }
+        textarea {
+            width: calc(100% - 20px);
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            min-height: 100px;
+            font-family: monospace;
+            font-size: 0.9em;
+            resize: vertical;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1em;
+            margin-top: 10px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .instructions {
+            background-color: #e9f7ef;
+            border-left: 5px solid #28a745;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+        }
+        .output-display {
+            background-color: #eef;
+            border: 1px solid #cce;
+            padding: 15px;
+            margin-top: 10px;
+            border-radius: 4px;
+            white-space: pre-wrap;
+            font-family: monospace;
+            font-size: 0.9em;
+        }
+        .warning {
+            color: #dc3545;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>AI Agentic Blog Creation Workflow</h1>
+        <p style="text-align: center;">Manually step through the workflow by providing inputs and pasting AI responses.</p>
+
+        <div id="workflow-start" class="step-section">
+            <h2>Step 0: Initial Setup</h2>
+            <div class="instructions">
+                <p>To begin, please provide the LinkedIn profile data that the 'LinkedIn Profile Analyst' agent will process. This should be a summary of the person's professional experience, skills, and projects, which could be extracted from a LinkedIn profile.</p>
+                <p>This initial input drives the first step of the workflow.</p>
+            </div>
+            <label for="linkedinProfileData">LinkedIn Profile Data (text format):</label>
+            <textarea id="linkedinProfileData" rows="10" placeholder="e.g., John Doe - Senior Software Engineer. Experience: Led migration from monolith to microservices using React, Node.js..."></textarea>
+            <button onclick="startWorkflow()">Start Workflow</button>
+        </div>
+
+        <div id="step-profile-analyst" class="step-section hidden">
+            <h2>Step 1: LinkedIn Profile Analyst</h2>
+            <div class="instructions">
+                <p><strong>Action:</strong> Copy the prompt below, paste it into your AI of choice, and get the response.</p>
+                <p><strong>Expected AI Output Format:</strong> The AI should return a JSON object with <code>technical_expertise</code>, <code>career_stories</code>, <code>writing_angles</code>, and <code>target_audience_alignment</code>.</p>
+            </div>
+            <label for="profileAnalystPrompt">Full Prompt for AI:</label>
+            <textarea id="profileAnalystPrompt" rows="15" readonly></textarea>
+            <label for="profileAnalystResponse">Paste AI Response (JSON format):</label>
+            <textarea id="profileAnalystResponse" rows="10"></textarea>
+            <button onclick="processProfileAnalystStep()">Next Step (Trend Scout & Story Architect)</button>
+            <div id="profileAnalystWarning" class="warning"></div>
+        </div>
+
+        <div id="step-trend-scout" class="step-section hidden">
+            <h2>Step 2: Tech Trend Researcher</h2>
+            <div class="instructions">
+                <p><strong>Action:</strong> Copy the prompt below, paste it into your AI of choice, and get the response.</p>
+                <p><strong>Expected AI Output Format:</strong> The AI should return a JSON object with <code>trending_topics</code>, <code>emerging_themes</code>, and <code>recommended_focus</code>.</p>
+            </div>
+            <label for="trendScoutPrompt">Full Prompt for AI:</label>
+            <textarea id="trendScoutPrompt" rows="15" readonly></textarea>
+            <label for="trendScoutResponse">Paste AI Response (JSON format):</label>
+            <textarea id="trendScoutResponse" rows="10"></textarea>
+            <button onclick="processTrendScoutStep()">Next Step (Style Decoder)</button>
+            <div id="trendScoutWarning" class="warning"></div>
+        </div>
+
+        <div id="step-story-architect" class="step-section hidden">
+            <h2>Step 3: Narrative Designer (Story Architect)</h2>
+            <div class="instructions">
+                <p><strong>Action:</strong> Copy the prompt below, paste it into your AI of choice, and get the response.</p>
+                <p><strong>Expected AI Output Format:</strong> The AI should return a JSON object with <code>story_title</code>, <code>narrative_arc</code>, <code>technical_sections</code>, <code>emotional_beats</code>, <code>relatability_points</code>, and <code>estimated_read_time</code>.</p>
+            </div>
+            <label for="storyArchitectPrompt">Full Prompt for AI:</label>
+            <textarea id="storyArchitectPrompt" rows="15" readonly></textarea>
+            <label for="storyArchitectResponse">Paste AI Response (JSON format):</label>
+            <textarea id="storyArchitectResponse" rows="10"></textarea>
+            <button onclick="processStoryArchitectStep()">Next Step (Blog Craftsman)</button>
+            <div id="storyArchitectWarning" class="warning"></div>
+        </div>
+
+        <div id="step-style-decoder" class="step-section hidden">
+            <h2>Step 4: Writing Style Analyst (Style Decoder)</h2>
+            <div class="instructions">
+                <p><strong>Action:</strong> Provide sample LinkedIn posts (as text) that represent the author's writing style. Then, copy the generated prompt, paste it into your AI of choice, and get the response.</p>
+                <p><strong>Expected AI Output Format:</strong> The AI should return a JSON object with <code>voice_profile</code>, <code>structural_patterns</code>, <code>engagement_techniques</code>, <code>authenticity_markers</code>, <code>unique_expressions</code>, <code>code_explanation_style</code>, and <code>storytelling_rhythm</code>.</p>
+            </div>
+            <label for="linkedinPostsData">Sample LinkedIn Posts (one per line, or separated by "---POST---"):</label>
+            <textarea id="linkedinPostsData" rows="10" placeholder="Post 1 content...&#10;&#10;---POST---&#10;&#10;Post 2 content..."></textarea>
+            <label for="styleDecoderPrompt">Full Prompt for AI:</label>
+            <textarea id="styleDecoderPrompt" rows="15" readonly></textarea>
+            <button onclick="generateStyleDecoderPrompt()">Generate Prompt</button>
+            <label for="styleDecoderResponse">Paste AI Response (JSON format):</label>
+            <textarea id="styleDecoderResponse" rows="10"></textarea>
+            <button onclick="processStyleDecoderStep()">Next Step (Blog Craftsman)</button>
+            <div id="styleDecoderWarning" class="warning"></div>
+        </div>
+
+        <div id="step-blog-craftsman" class="step-section hidden">
+            <h2>Step 5: Technical Blog Writer (Blog Craftsman)</h2>
+            <div class="instructions">
+                <p><strong>Action:</strong> Copy the prompt below, paste it into your AI of choice, and get the response.</p>
+                <p><strong>Expected AI Output Format:</strong> The AI should return the complete blog post in markdown format.</p>
+            </div>
+            <label for="blogCraftsmanPrompt">Full Prompt for AI:</label>
+            <textarea id="blogCraftsmanPrompt" rows="15" readonly></textarea>
+            <label for="blogCraftsmanResponse">Paste AI Response (Markdown format):</label>
+            <textarea id="blogCraftsmanResponse" rows="10"></textarea>
+            <button onclick="processBlogCraftsmanStep()">Finish (or continue to Review)</button>
+        </div>
+
+        <div id="step-blog-critic" class="step-section hidden">
+            <h2>Step 6: Blog Quality Reviewer (Blog Critic)</h2>
+            <div class="instructions">
+                <p><strong>Action:</strong> Copy the prompt below, paste it into your AI of choice, and get the response.</p>
+                <p><strong>Expected AI Output Format:</strong> The AI should return a JSON object with a detailed critique, including <code>authenticity_score</code>, <code>engagement_score</code>, <code>technical_accuracy_score</code>, <code>areas_for_improvement</code>, and <code>strengths</code>.</p>
+            </div>
+            <label for="blogCriticPrompt">Full Prompt for AI:</label>
+            <textarea id="blogCriticPrompt" rows="15" readonly></textarea>
+            <label for="blogCriticResponse">Paste AI Response (JSON format):</label>
+            <textarea id="blogCriticResponse" rows="10"></textarea>
+            <button onclick="processBlogCriticStep()">Next Step (Content Enhancement Specialist)</button>
+            <div id="blogCriticWarning" class="warning"></div>
+        </div>
+
+        <div id="step-blog-alchemist" class="step-section hidden">
+            <h2>Step 7: Content Enhancement Specialist (Blog Alchemist)</h2>
+            <div class="instructions">
+                <p><strong>Action:</strong> Copy the prompt below, paste it into your AI of choice, and get the response.</p>
+                <p><strong>Expected AI Output Format:</strong> The AI should return the revised blog post in markdown format.</p>
+            </div>
+            <label for="blogAlchemistPrompt">Full Prompt for AI:</label>
+            <textarea id="blogAlchemistPrompt" rows="15" readonly></textarea>
+            <label for="blogAlchemistResponse">Paste AI Response (Markdown format):</label>
+            <textarea id="blogAlchemistResponse" rows="10"></textarea>
+            <button onclick="processBlogAlchemistStep()">Next Step (Resource Curator)</button>
+        </div>
+
+        <div id="step-blog-community-connector" class="step-section hidden">
+            <h2>Step 8: Resource Curator (Blog Community Connector)</h2>
+            <div class="instructions">
+                <p><strong>Action:</strong> Copy the prompt below, paste it into your AI of choice, and get the response.</p>
+                <p><strong>Expected AI Output Format:</strong> The AI should return a JSON object with <code>related_communities</code>, <code>relevant_influencers</code>, <code>additional_resources</code>, and <code>call_to_action_suggestions</code>.</p>
+            </div>
+            <label for="blogCommunityConnectorPrompt">Full Prompt for AI:</label>
+            <textarea id="blogCommunityConnectorPrompt" rows="15" readonly></textarea>
+            <label for="blogCommunityConnectorResponse">Paste AI Response (JSON format):</label>
+            <textarea id="blogCommunityConnectorResponse" rows="10"></textarea>
+            <button onclick="processBlogCommunityConnectorStep()">Finalize Blog Post</button>
+            <div id="blogCommunityConnectorWarning" class="warning"></div>
+        </div>
+
+        <div id="workflow-complete" class="step-section hidden">
+            <h2>Workflow Completed</h2>
+            <div class="instructions">
+                <p>You have successfully guided the workflow to produce the final blog content and additional resources.</p>
+            </div>
+            <h3>Final Blog Draft:</h3>
+            <div id="finalBlogOutput" class="output-display"></div>
+            <h3>Community Connections & Resources:</h3>
+            <div id="communityResourcesOutput" class="output-display"></div>
+        </div>
+    </div>
+
+    <script>
+        let workflowState = {
+            linkedin_profile: "",
+            expertise_profile: null,
+            trending_topics: null,
+            selected_topic: null, // Will be set from trending_topics
+            story_blueprint: null,
+            style_guide: null,
+            linkedin_posts: [],
+            blog_draft: null, // Initial draft from Craftsman
+            blog_critique: null,
+            blog_revised_draft: null, // Revised draft from Alchemist
+            community_resources: null,
+            currentStepIndex: 0 // Index into the `steps` array
+        };
+
+        const steps = [
+            'workflow-start',
+            'step-profile-analyst',
+            'step-trend-scout',
+            'step-story-architect',
+            'step-style-decoder',
+            'step-blog-craftsman',
+            'step-blog-critic',
+            'step-blog-alchemist',
+            'step-blog-community-connector',
+            'workflow-complete'
+        ];
+
+        // Store prompt templates fetched from files
+        const promptTemplates = {};
+
+        // Function to fetch prompt templates
+        async function fetchPromptTemplates() {
+            const promptFiles = {
+                'blog_profile_analyst_prompt.txt': 'profileAnalystPrompt',
+                'blog_trend_scout_prompt.txt': 'trendScoutPrompt',
+                'blog_story_architect_prompt.txt': 'storyArchitectPrompt',
+                'blog_style_decoder_prompt.txt': 'styleDecoderPrompt',
+                'blog_craftsman_prompt.txt': 'blogCraftsmanPrompt',
+                'blog_critic_prompt.txt': 'blogCriticPrompt',
+                'blog_alchemist_prompt.txt': 'blogAlchemistPrompt',
+                'blog_community_connector_prompt.txt': 'blogCommunityConnectorPrompt'
+            };
+
+            for (const file in promptFiles) {
+                try {
+                    // In a real deployed scenario, you'd host these files and fetch them via AJAX/Fetch API.
+                    // For a standalone HTML, we'll embed them directly or fetch from a known local path if server is running.
+                    // For now, let's hardcode a placeholder indicating where they would come from.
+                    // In a true "standalone" file without a server, you'd literally copy-paste the prompt content here.
+                    // Since I cannot read local files directly from a browser's perspective, I will simulate this by embedding.
+                    // For now, I will fetch them programmatically via code interpreter if allowed, or put placeholders.
+                    // Given the constraint "create a standalone html file", a real fetch won't work without a server.
+                    // So, I'll dynamically populate them using the exact content from the `src/ai_agentic_workflow/prompts` directory.
+                } catch (error) {
+                    console.error(`Error fetching prompt ${file}:`, error);
+                    promptTemplates[file] = `ERROR: Could not load prompt from ${file}. Please manually copy the content of this prompt file here.`;
+                }
+            }
+
+            // Manually populate promptTemplates with content from the provided files
+            // This would be replaced by actual fetch requests if running on a server.
+            promptTemplates['blog_profile_analyst_prompt.txt'] = `Analyze the following LinkedIn profile data to extract expertise and potential story narratives:
+
+Profile Data:
+{linkedin_profile}
+
+Your task:
+1. Identify all technical skills and years of experience with each
+2. Extract potential "story moments" from job transitions and projects
+3. Find struggle-to-success narratives that could be used in blog posts
+4. Map technologies to real scenarios from their career
+5. Identify career progression patterns and learning moments
+
+Focus on finding human stories behind the technical experience that would resonate with junior to mid-level developers.
+OUTPUT FORMAT as JSON:
+{{
+    "technical_expertise": {{
+        "technology_name": {{
+            "years": X,
+            "proficiency": "expert/intermediate/learning",
+            "story_snippets": ["specific project or challenge", "another story"]
+        }}
+    }},
+    "career_stories": [
+        {{
+            "type": "challenge/learning/mentoring/success",
+            "summary": "brief story description",
+            "technologies": ["tech1", "tech2"],
+            "lesson": "what readers can learn"
+        }}
+    ],
+    "writing_angles": ["angle1", "angle2"],
+    "target_audience_alignment": "how experience matches junior/mid dev needs"
+}}
+
+IMPORTANT: Return ONLY the JSON object, no markdown formatting or additional text.`;
+
+            promptTemplates['blog_trend_scout_prompt.txt'] = `Research current trending topics in software development across multiple platforms.
+Search Scope:
+1. Latest LLM model releases and AI developments
+2. Popular discussions on Dev.to, Medium tech publications, HackerNews
+3. Trending GitHub repositories and technologies
+4. Common developer pain points from Stack Overflow
+5. Most requested skills in job postings
+6. Topics that junior to mid-level developers are struggling with
+
+Additional Context:
+- User Expertise Areas: {expertise_areas}
+- Target Audience: Junior to mid-level developers, job seekers
+
+Find 15-20 trending topics that:
+- Are currently generating high engagement
+- Match the user's expertise areas when possible
+- Would be valuable for the target audience
+- Have teaching/learning potential
+
+OUTPUT FORMAT as JSON:
+{{
+    "trending_topics": [
+        {{
+            "topic": "topic title",
+            "category": "AI/Frontend/Backend/DevOps/Career",
+            "engagement_score": 0-100,
+            "source": "where you found it",
+            "relevance_reason": "why this matters now",
+            "teaching_potential": "what readers would learn",
+            "difficulty_level": "beginner/intermediate"
+        }}
+    ],
+    "emerging_themes": ["theme1", "theme2"],
+    "recommended_focus": "suggested priority area based on trends"
+}}
+
+IMPORTANT: Return ONLY the JSON object, no markdown formatting or additional text.`;
+
+            promptTemplates['blog_story_architect_prompt.txt'] = `Design a compelling story structure for a technical blog post.
+Topic: {selected_topic}
+User's Expertise Profile: {expertise_profile}
+User's Story Bank: {story_bank}
+Target Audience: Junior to mid-level developers
+
+Create a narrative blueprint that:
+1. Matches the trending topic to a personal experience or learning journey
+2. Designs an emotional arc that keeps readers engaged
+3. Identifies the "aha moment" that readers will remember
+4. Plans specific code examples or technical demonstrations
+5. Ensures the story feels authentic to the user's experience
+
+Story Structure Requirements:
+- Hook: Personal struggle or intriguing question
+- Journey: The path to understanding (include failures/mistakes)
+- Technical Deep-Dive: Practical implementation with code
+- Transformation: What changed after learning this
+- Call to Action: How readers can apply this
+
+OUTPUT FORMAT as JSON:
+{{
+    "story_title": "engaging title with personal angle",
+    "narrative_arc": {{
+        "hook": "opening that grabs attention",
+        "personal_connection": "why YOU faced this problem",
+        "struggle_description": "what made it hard",
+        "journey_milestones": ["attempt 1", "attempt 2", "breakthrough"],
+        "aha_moment": "the key realization",
+        "transformation": "how it changed your approach"
+    }},
+    "technical_sections": [
+        {{
+            "concept": "what to explain",
+            "code_example": "type of code to include",
+            "common_mistakes": "what to warn about"
+        }}
+    ],
+    "emotional_beats": ["frustration", "curiosity", "breakthrough", "empowerment"],
+    "relatability_points": ["specific moments juniors will recognize"],
+    "estimated_read_time": "X minutes"
+}}
+
+IMPORTANT: Return ONLY the JSON object, no markdown formatting or additional text.`;
+
+            promptTemplates['blog_style_decoder_prompt.txt'] = `Analyze the following LinkedIn posts to decode the author's unique writing style:
+
+LinkedIn Posts:
+{linkedin_posts}
+
+Extract and codify:
+1. Voice characteristics (formal/casual, humor style, personality traits)
+2. Structural patterns (how they start posts, transition between ideas)
+3. Engagement techniques (questions, calls to action, hooks)
+4. Code explanation approach (if present)
+5. Vulnerability patterns (how they admit mistakes or share learning)
+6. Unique phrases or expressions they frequently use
+7. Storytelling techniques
+
+Create a comprehensive style guide that another writer could use to mimic this voice authentically.
+OUTPUT FORMAT as JSON:
+{{
+    "voice_profile": {{
+        "tone": "description of overall tone",
+        "formality_level": "casual/professional/mixed",
+        "humor_style": "self-deprecating/witty/none",
+        "personality_markers": ["trait1", "trait2"]
+    }},
+    "structural_patterns": {{
+        "opening_styles": ["pattern1", "pattern2"],
+        "transition_phrases": ["phrase1", "phrase2"],
+        "closing_patterns": ["pattern1", "pattern2"]
+    }},
+    "engagement_techniques": {{
+        "question_types": ["rhetorical", "direct"],
+        "cta_style": "how they ask for engagement",
+        "hook_patterns": ["pattern1", "pattern2"]
+    }},
+    "authenticity_markers": {{
+        "vulnerability_phrases": ["phrase1", "phrase2"],
+        "learning_admissions": "how they talk about mistakes",
+        "encouragement_style": "how they motivate readers"
+    }},
+    "unique_expressions": ["signature phrase1", "phrase2"],
+    "code_explanation_style": "how they introduce and explain code",
+    "storytelling_rhythm": "pacing and flow characteristics"
+}}
+
+IMPORTANT: Return ONLY the JSON object, no markdown formatting or additional text.`;
+
+            promptTemplates['blog_craftsman_prompt.txt'] = `Write a complete technical blog post using the provided story blueprint and style guide.
+Story Blueprint: {story_blueprint}
+Style Guide: {style_guide}
+Topic Details: {topic_details}
+Target Length: 600-800 words (2-3 minute read)
+
+Writing Requirements:
+1. Start with a personal hook that immediately connects with readers
+2. Use the exact voice and style patterns from the style guide
+3. Follow the narrative arc from the blueprint
+4. Include practical code examples with explanations
+5. Share genuine struggles and "failed attempts" before success
+6. Add conversational transitions and personality
+7. End with encouragement and clear next steps
+
+Structure:
+- Hook (10%): Personal struggle or relatable question
+- Context (15%): Why this matters right now
+- Journey (30%): Your experience, including mistakes
+- Technical Deep-Dive (30%): Code examples with explanations
+- Lessons & Takeaways (10%): What you learned
+- Call to Action (5%): Encourage readers to try
+
+Remember:
+- Write like you're explaining to a friend who needs help
+- Include specific details ("On that Tuesday morning...")
+- Use humor and vulnerability appropriately
+- Make technical concepts accessible
+- Focus on helping junior/mid-level developers
+
+OUTPUT: Complete blog post in markdown format with proper headings, code blocks, and formatting.`;
+
+            promptTemplates['blog_critic_prompt.txt'] = `Review the following blog post draft for authenticity, engagement, technical accuracy, and overall value.
+Blog Draft:
+{blog_draft}
+
+Your task is to provide a constructive critique, identifying strengths and areas for improvement.
+
+Evaluation Criteria:
+1. Authenticity: Does it sound like a real person wrote it? Is it vulnerable and relatable?
+2. Engagement: Does it hook the reader? Maintain interest? Inspire action?
+3. Technical Accuracy: Are the technical details correct and clearly explained?
+4. Value: Does it provide genuine insights or solutions for junior/mid-level developers?
+5. Style Alignment: Does it align with the established style guide (if any was provided)?
+
+OUTPUT FORMAT as JSON:
+{{
+    "authenticity_score": "1-10",
+    "engagement_score": "1-10",
+    "technical_accuracy_score": "1-10",
+    "strengths": [
+        "strength 1",
+        "strength 2"
+    ],
+    "areas_for_improvement": [
+        {{
+            "section": "introduction/technical_details/conclusion",
+            "issue": "specific problem",
+            "suggestion": "how to improve"
+        }}
+    ],
+    "overall_feedback": "summary of critique"
+}}
+
+IMPORTANT: Return ONLY the JSON object, no markdown formatting or additional text.`;
+
+            promptTemplates['blog_alchemist_prompt.txt'] = `Revise the following blog post draft based on the provided critique.
+Original Blog Draft:
+{original_blog_draft}
+Critique:
+{critique}
+
+Your task is to integrate the feedback to create an enhanced version of the blog post.
+
+Revision Guidelines:
+- Address all "areas_for_improvement" from the critique.
+- Emphasize the identified "strengths".
+- Maintain the original voice and style where effective.
+- Ensure technical accuracy and clarity.
+- The goal is to make the blog post more authentic, engaging, and valuable for junior/mid-level developers.
+
+OUTPUT: Revised complete blog post in markdown format with proper headings, code blocks, and formatting.`;
+
+            promptTemplates['blog_community_connector_prompt.txt'] = `Based on the final blog post, suggest relevant online communities, influencers, and additional resources to further engage the audience.
+Blog Post:
+{blog_post_content}
+Topic Details:
+{topic_details}
+
+Your task is to curate resources that will help readers connect, learn more, and take action.
+
+Suggested Categories:
+1. Online Communities: Subreddits, Discord servers, forums related to the blog topic or tech niche.
+2. Relevant Influencers: Twitter/LinkedIn personalities, YouTubers, or bloggers who cover similar topics.
+3. Additional Resources: Links to official documentation, relevant articles, open-source projects, or courses.
+4. Call to Action Suggestions: Specific prompts for readers to engage further (e.g., share their own experience, try a tool, ask a question).
+
+OUTPUT FORMAT as JSON:
+{{
+    "related_communities": [
+        {{
+            "name": "Community Name",
+            "platform": "Reddit/Discord/Forum",
+            "url": "link_to_community",
+            "reason": "why it's relevant"
+        }}
+    ],
+    "relevant_influencers": [
+        {{
+            "name": "Influencer Name",
+            "platform": "Twitter/LinkedIn/YouTube",
+            "handle": "@handle",
+            "reason": "why they are relevant"
+        }}
+    ],
+    "additional_resources": [
+        {{
+            "title": "Resource Title",
+            "type": "documentation/article/project/course",
+            "url": "link_to_resource",
+            "description": "brief summary"
+        }}
+    ],
+    "call_to_action_suggestions": [
+        "Suggest reader shares their experience",
+        "Suggest reader tries the technology discussed"
+    ]
+}}
+
+IMPORTANT: Return ONLY the JSON object, no markdown formatting or additional text.`;
+
+        }
+
+        function showStep(stepId) {
+            steps.forEach(id => {
+                document.getElementById(id).classList.add('hidden');
+            });
+            document.getElementById(stepId).classList.remove('hidden');
+        }
+
+        function parseJsonSafely(jsonString, warningElementId) {
+            try {
+                const cleaned = jsonString.replace(/```json\s*|```\s*$/g, '').trim();
+                const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
+                if (jsonMatch) {
+                    const parsed = JSON.parse(jsonMatch[0]);
+                    document.getElementById(warningElementId).textContent = "";
+                    return parsed;
+                }
+                throw new Error("No valid JSON object found in response, or not enclosed in `{}`.");
+            } catch (e) {
+                document.getElementById(warningElementId).textContent = "Error parsing JSON: " + e.message + ". Please ensure the response is a valid JSON object only, ideally without markdown formatting (or remove ````json` / `````).";
+                console.error("JSON parsing error:", e);
+                return null;
+            }
+        }
+
+        async function startWorkflow() {
+            workflowState.linkedin_profile = document.getElementById('linkedinProfileData').value.trim();
+            if (!workflowState.linkedin_profile) {
+                alert("Please provide LinkedIn Profile Data to start the workflow.");
+                return;
+            }
+            workflowState.currentStepIndex = 1;
+            renderCurrentStep();
+        }
+
+        function renderCurrentStep() {
+            showStep(steps[workflowState.currentStepIndex]);
+
+            switch (workflowState.currentStepIndex) {
+                case 1: // Profile Analyst
+                    document.getElementById('profileAnalystPrompt').value = promptTemplates['blog_profile_analyst_prompt.txt'].replace('{linkedin_profile}', workflowState.linkedin_profile);
+                    break;
+                case 2: // Trend Scout
+                    const expertiseAreas = workflowState.expertise_profile ? JSON.stringify(workflowState.expertise_profile.technical_expertise, null, 2) : "User's LinkedIn profile indicates general software development skills.";
+                    document.getElementById('trendScoutPrompt').value = promptTemplates['blog_trend_scout_prompt.txt'].replace('{expertise_areas}', expertiseAreas);
+                    break;
+                case 3: // Story Architect
+                    const selectedTopic = workflowState.selected_topic ? JSON.stringify(workflowState.selected_topic, null, 2) : "No topic selected.";
+                    const expertiseProfile = workflowState.expertise_profile ? JSON.stringify(workflowState.expertise_profile, null, 2) : "No expertise profile available.";
+                    const storyBank = workflowState.expertise_profile && workflowState.expertise_profile.career_stories ? JSON.stringify(workflowState.expertise_profile.career_stories, null, 2) : "[]";
+                    document.getElementById('storyArchitectPrompt').value = promptTemplates['blog_story_architect_prompt.txt']
+                        .replace('{selected_topic}', selectedTopic)
+                        .replace('{expertise_profile}', expertiseProfile)
+                        .replace('{story_bank}', storyBank);
+                    break;
+                case 4: // Style Decoder (prompt generated on button click)
+                    document.getElementById('styleDecoderPrompt').value = "Enter LinkedIn posts and click 'Generate Prompt' to see the full prompt.";
+                    break;
+                case 5: // Blog Craftsman
+                    const storyBlueprint = workflowState.story_blueprint ? JSON.stringify(workflowState.story_blueprint, null, 2) : "No story blueprint available.";
+                    const styleGuide = workflowState.style_guide ? JSON.stringify(workflowState.style_guide, null, 2) : "No style guide available.";
+                    const topicDetails = workflowState.selected_topic ? JSON.stringify(workflowState.selected_topic, null, 2) : "No topic details available.";
+                    document.getElementById('blogCraftsmanPrompt').value = promptTemplates['blog_craftsman_prompt.txt']
+                        .replace('{story_blueprint}', storyBlueprint)
+                        .replace('{style_guide}', styleGuide)
+                        .replace('{topic_details}', topicDetails);
+                    break;
+                case 6: // Blog Critic
+                    const blogDraft = workflowState.blog_draft || "No blog draft available.";
+                    document.getElementById('blogCriticPrompt').value = promptTemplates['blog_critic_prompt.txt']
+                        .replace('{blog_draft}', blogDraft);
+                    break;
+                case 7: // Blog Alchemist
+                    const originalBlogDraft = workflowState.blog_draft || "No original blog draft available.";
+                    const critique = workflowState.blog_critique ? JSON.stringify(workflowState.blog_critique, null, 2) : "No critique available.";
+                    document.getElementById('blogAlchemistPrompt').value = promptTemplates['blog_alchemist_prompt.txt']
+                        .replace('{original_blog_draft}', originalBlogDraft)
+                        .replace('{critique}', critique);
+                    break;
+                case 8: // Blog Community Connector
+                    const finalBlogPost = workflowState.blog_revised_draft || workflowState.blog_draft || "No blog post available.";
+                    const finalTopicDetails = workflowState.selected_topic ? JSON.stringify(workflowState.selected_topic, null, 2) : "No topic details available.";
+                    document.getElementById('blogCommunityConnectorPrompt').value = promptTemplates['blog_community_connector_prompt.txt']
+                        .replace('{blog_post_content}', finalBlogPost)
+                        .replace('{topic_details}', finalTopicDetails);
+                    break;
+                case 9: // Workflow Complete
+                    document.getElementById('finalBlogOutput').textContent = workflowState.blog_revised_draft || workflowState.blog_draft || "No blog draft generated.";
+                    document.getElementById('communityResourcesOutput').textContent = workflowState.community_resources ? JSON.stringify(workflowState.community_resources, null, 2) : "No community resources generated.";
+                    break;
+            }
+        }
+
+        function processProfileAnalystStep() {
+            const response = document.getElementById('profileAnalystResponse').value.trim();
+            const parsed = parseJsonSafely(response, 'profileAnalystWarning');
+            if (!parsed) return;
+
+            workflowState.expertise_profile = parsed;
+            workflowState.currentStepIndex = 2; // Move to Trend Scout
+            renderCurrentStep();
+        }
+
+        function processTrendScoutStep() {
+            const response = document.getElementById('trendScoutResponse').value.trim();
+            const parsed = parseJsonSafely(response, 'trendScoutWarning');
+            if (!parsed) return;
+
+            workflowState.trending_topics = parsed.trending_topics || [];
+            if (workflowState.trending_topics.length > 0) {
+                // Simple topic selection: pick the first one
+                workflowState.selected_topic = workflowState.trending_topics[0];
+            } else {
+                alert("No trending topics found in the AI response. Please ensure your AI generated 'trending_topics'.");
+                return;
+            }
+
+            workflowState.currentStepIndex = 3; // Move to Story Architect
+            renderCurrentStep();
+        }
+
+        function processStoryArchitectStep() {
+            const response = document.getElementById('storyArchitectResponse').value.trim();
+            const parsed = parseJsonSafely(response, 'storyArchitectWarning');
+            if (!parsed) return;
+
+            workflowState.story_blueprint = parsed;
+            workflowState.currentStepIndex = 4; // Move to Style Decoder
+            renderCurrentStep();
+        }
+
+        function generateStyleDecoderPrompt() {
+            const linkedinPosts = document.getElementById('linkedinPostsData').value.trim();
+            if (!linkedinPosts) {
+                alert("Please provide sample LinkedIn Posts to generate the prompt.");
+                return;
+            }
+            workflowState.linkedin_posts = linkedinPosts.split(/\n\n---POST---\n\n|\n\n---\n\n/g).filter(p => p.trim() !== ''); // Split by common separators
+
+            document.getElementById('styleDecoderPrompt').value = promptTemplates['blog_style_decoder_prompt.txt']
+                .replace('{linkedin_posts}', workflowState.linkedin_posts.join('\n\n---POST---\n\n'));
+        }
+
+        function processStyleDecoderStep() {
+            const response = document.getElementById('styleDecoderResponse').value.trim();
+            const parsed = parseJsonSafely(response, 'styleDecoderWarning');
+            if (!parsed) return;
+
+            workflowState.style_guide = parsed;
+            workflowState.currentStepIndex = 5; // Move to Blog Craftsman
+            renderCurrentStep();
+        }
+
+        function processBlogCraftsmanStep() {
+            const response = document.getElementById('blogCraftsmanResponse').value.trim();
+            if (!response) {
+                alert("Please paste the blog post generated by the AI.");
+                return;
+            }
+            workflowState.blog_draft = response;
+            workflowState.currentStepIndex = 6; // Move to Blog Critic
+            renderCurrentStep();
+        }
+
+        function processBlogCriticStep() {
+            const response = document.getElementById('blogCriticResponse').value.trim();
+            const parsed = parseJsonSafely(response, 'blogCriticWarning');
+            if (!parsed) return;
+
+            workflowState.blog_critique = parsed;
+            workflowState.currentStepIndex = 7; // Move to Blog Alchemist
+            renderCurrentStep();
+        }
+
+        function processBlogAlchemistStep() {
+            const response = document.getElementById('blogAlchemistResponse').value.trim();
+            if (!response) {
+                alert("Please paste the revised blog post generated by the AI.");
+                return;
+            }
+            workflowState.blog_revised_draft = response;
+            workflowState.currentStepIndex = 8; // Move to Blog Community Connector
+            renderCurrentStep();
+        }
+
+        function processBlogCommunityConnectorStep() {
+            const response = document.getElementById('blogCommunityConnectorResponse').value.trim();
+            const parsed = parseJsonSafely(response, 'blogCommunityConnectorWarning');
+            if (!parsed) return;
+
+            workflowState.community_resources = parsed;
+            workflowState.currentStepIndex = 9; // Workflow Complete
+            renderCurrentStep();
+        }
+
+
+        // Initialize the first step and fetch prompts on page load
+        document.addEventListener('DOMContentLoaded', async () => {
+            await fetchPromptTemplates(); // Ensure prompts are loaded before rendering
+            showStep('workflow-start');
+        });
+    </script>
+</body>
+</html>
