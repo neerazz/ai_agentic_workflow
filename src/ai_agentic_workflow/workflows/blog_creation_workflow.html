@@ -50,6 +50,14 @@
             margin: 10px 0;
             font-size: 12px;
         }
+        .topic-details {
+            background: #eff6ff;
+            border: 1px solid #3b82f6;
+            border-radius: 4px;
+            padding: 10px;
+            margin: 10px 0;
+            font-size: 12px;
+        }
         .step-number {
             background: #007bff;
             color: white;
@@ -152,19 +160,15 @@
                             <h5><i class="fas fa-file-text"></i> Predefined Prompt</h5>
                             <div class="prompt-text">
 Analyze the following LinkedIn profile data to extract expertise and potential story narratives:
-
 Profile Data:
-{profile_input}
-
+https://www.linkedin.com/in/neerajkumarsinghb/
 Your task:
 1. Identify all technical skills and years of experience with each
 2. Extract potential "story moments" from job transitions and projects
 3. Find struggle-to-success narratives that could be used in blog posts
 4. Map technologies to real scenarios from their career
 5. Identify career progression patterns and learning moments
-
 Focus on finding human stories behind the technical experience that would resonate with junior to mid-level developers.
-
 OUTPUT FORMAT as JSON:
 {{
     "technical_expertise": {{
@@ -185,7 +189,6 @@ OUTPUT FORMAT as JSON:
     "writing_angles": ["angle1", "angle2"],
     "target_audience_alignment": "how experience matches junior/mid dev needs"
 }}
-
 IMPORTANT: Return ONLY the JSON object, no markdown formatting or additional text
                             </div>
                         </div>
@@ -388,6 +391,10 @@ Return as JSON with detailed structure for each section.
                                 <select class="form-select" id="selectedTopic">
                                     <option value="">Complete Step 2 first</option>
                                 </select>
+                            </div>
+                            <div class="topic-details" id="selectedTopicDetails" style="display: none;">
+                                <strong>Selected Topic Details:</strong>
+                                <div id="topicDetailsContent"></div>
                             </div>
                             <div class="data-display" id="storyContext">
                                 Expertise and stories will appear here after completing previous steps
@@ -974,9 +981,9 @@ Return the enhanced blog with these sections added naturally.
                 return;
             }
             
-            // Use whichever input is provided
+            // Use whichever input is provided and replace the example URL
             const profileInput = profileData || profileUrl;
-            const finalPrompt = basePrompt.replace('{profile_input}', profileInput);
+            const finalPrompt = basePrompt.replace('https://www.linkedin.com/in/neerajkumarsinghb/', profileInput);
             
             document.getElementById('finalPrompt1').textContent = finalPrompt;
         }
@@ -1124,6 +1131,35 @@ Return the enhanced blog with these sections added naturally.
             document.getElementById('finalPrompt8').textContent = finalPrompt;
         }
 
+        function parseJsonResponse(response) {
+            try {
+                // First, try direct JSON parsing
+                return JSON.parse(response);
+            } catch (e) {
+                try {
+                    // Clean up common formatting issues
+                    let cleaned = response.trim();
+                    
+                    // Remove markdown code blocks
+                    cleaned = cleaned.replace(/```json\s*/g, '');
+                    cleaned = cleaned.replace(/```\s*$/g, '');
+                    
+                    // Try to extract JSON object from the text
+                    const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
+                    if (jsonMatch) {
+                        return JSON.parse(jsonMatch[0]);
+                    }
+                    
+                    // If no JSON object found, try the cleaned text
+                    return JSON.parse(cleaned);
+                } catch (e2) {
+                    console.error('JSON parsing error:', e2);
+                    console.log('Raw response:', response);
+                    throw new Error('Invalid JSON format');
+                }
+            }
+        }
+
         function saveStepData(step) {
             const responseId = `response${step}`;
             const response = document.getElementById(responseId).value;
@@ -1144,23 +1180,23 @@ Return the enhanced blog with these sections added naturally.
             try {
                 switch(step) {
                     case 1:
-                        workflowData.expertiseProfile = JSON.parse(response);
+                        workflowData.expertiseProfile = parseJsonResponse(response);
                         break;
                     case 2:
-                        const trendData = JSON.parse(response);
+                        const trendData = parseJsonResponse(response);
                         workflowData.trendingTopics = trendData.trending_topics || [];
                         break;
                     case 3:
-                        workflowData.storyBlueprint = JSON.parse(response);
+                        workflowData.storyBlueprint = parseJsonResponse(response);
                         break;
                     case 4:
-                        workflowData.styleGuide = JSON.parse(response);
+                        workflowData.styleGuide = parseJsonResponse(response);
                         break;
                     case 5:
                         workflowData.blogDraft = response;
                         break;
                     case 6:
-                        workflowData.reviewFeedback = JSON.parse(response);
+                        workflowData.reviewFeedback = parseJsonResponse(response);
                         break;
                     case 7:
                         workflowData.enhancedBlog = response;
@@ -1178,7 +1214,7 @@ Return the enhanced blog with these sections added naturally.
                         case 8: workflowData.finalBlog = response; break;
                     }
                 } else {
-                    alert('Please ensure the response is valid JSON format.');
+                    alert(`JSON parsing failed for step ${step}. Please ensure the response is valid JSON format.\n\nError: ${e.message}\n\nTip: Make sure there are no extra characters before or after the JSON object.`);
                     return;
                 }
             }
@@ -1197,7 +1233,6 @@ Return the enhanced blog with these sections added naturally.
             // Update UI
             markStepCompleted(step);
             updateDataDisplays();
-            updateTopicSelection();
             updateProgress();
 
             // Navigate to next step
@@ -1257,6 +1292,9 @@ Return the enhanced blog with these sections added naturally.
                 document.getElementById('finalBlogContent').innerHTML = 
                     '<strong>Final Blog:</strong><br>' + finalContent.substring(0, 500) + '...';
             }
+
+            // Update topic selection and details
+            updateTopicSelection();
         }
 
         function updateTopicSelection() {
@@ -1266,16 +1304,67 @@ Return the enhanced blog with these sections added naturally.
                 workflowData.trendingTopics.forEach((topic, index) => {
                     const option = document.createElement('option');
                     option.value = index;
-                    option.textContent = topic.topic || `Topic ${index + 1}`;
+                    // Use the actual topic name, fallback to a default if not available
+                    option.textContent = topic.topic || topic.title || topic.name || `Topic ${index + 1}`;
                     select.appendChild(option);
                 });
 
-                select.addEventListener('change', function() {
-                    if (this.value !== '') {
-                        workflowData.selectedTopic = workflowData.trendingTopics[parseInt(this.value)];
-                        saveCurrentInputs();
+                // Remove any existing event listeners to avoid duplicates
+                select.removeEventListener('change', handleTopicChange);
+                // Add event listener for topic selection changes
+                select.addEventListener('change', handleTopicChange);
+                
+                // If there's already a selected topic, update the display
+                if (workflowData.selectedTopic) {
+                    const selectedIndex = workflowData.trendingTopics.findIndex(t => 
+                        JSON.stringify(t) === JSON.stringify(workflowData.selectedTopic)
+                    );
+                    if (selectedIndex !== -1) {
+                        select.value = selectedIndex;
+                        displaySelectedTopicDetails(workflowData.selectedTopic);
                     }
-                });
+                }
+            }
+        }
+
+        function handleTopicChange() {
+            const select = document.getElementById('selectedTopic');
+            if (select.value !== '') {
+                const selectedTopic = workflowData.trendingTopics[parseInt(select.value)];
+                workflowData.selectedTopic = selectedTopic;
+                displaySelectedTopicDetails(selectedTopic);
+                saveCurrentInputs();
+            } else {
+                // Hide topic details if no topic selected
+                document.getElementById('selectedTopicDetails').style.display = 'none';
+            }
+        }
+
+        function displaySelectedTopicDetails(topic) {
+            const detailsContainer = document.getElementById('selectedTopicDetails');
+            const detailsContent = document.getElementById('topicDetailsContent');
+            
+            if (topic) {
+                const formatScore = (score) => score ? `${score}/10` : 'N/A';
+                
+                const detailsHTML = `
+                    <div style="font-size: 12px; margin-top: 10px;">
+                        <div><strong>Topic:</strong> ${topic.topic || 'N/A'}</div>
+                        <div><strong>Category:</strong> ${topic.category || 'N/A'}</div>
+                        <div><strong>Description:</strong> ${topic.description || 'N/A'}</div>
+                        <div><strong>Engagement Score:</strong> ${formatScore(topic.engagement_score)}</div>
+                        <div><strong>Difficulty Level:</strong> ${topic.difficulty_level || 'N/A'}</div>
+                        <div><strong>Teaching Potential:</strong> ${topic.teaching_potential ? 'Yes' : 'No'}</div>
+                        <div><strong>Content Angle:</strong> ${topic.content_angle || 'N/A'}</div>
+                        ${topic.why_trending ? `<div><strong>Why Trending:</strong> ${topic.why_trending}</div>` : ''}
+                        ${topic.target_audience ? `<div><strong>Target Audience:</strong> ${topic.target_audience}</div>` : ''}
+                    </div>
+                `;
+                
+                detailsContent.innerHTML = detailsHTML;
+                detailsContainer.style.display = 'block';
+            } else {
+                detailsContainer.style.display = 'none';
             }
         }
 
