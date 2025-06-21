@@ -12,3 +12,4 @@ webdriver-manager
 notion-client
 langchain_ollama
 crewai
+crewai[tools]

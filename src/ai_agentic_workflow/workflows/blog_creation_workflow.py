@@ -5,30 +5,26 @@ Generates authentic, engaging technical blogs based on personal experience and t
 
 from __future__ import annotations
 
-import logging
 import json
+import logging
 import re
-from pathlib import Path
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Dict, Any, List, Optional, Tuple
 
-from crewai import Agent, Task, Crew, Process
-from langchain.tools import Tool
+from crewai import Task, Crew, Process
 
+from src.ai_agentic_workflow.agents.blog_alchemist_agent import get_blog_alchemist_agent, get_blog_alchemist_prompt
+from src.ai_agentic_workflow.agents.blog_craftsman_agent import get_blog_craftsman_agent, get_blog_craftsman_prompt
+from src.ai_agentic_workflow.agents.blog_critic_agent import get_blog_critic_agent, get_blog_critic_prompt
+from src.ai_agentic_workflow.agents.community_connector_agent import get_community_connector_agent, \
+    get_community_connector_prompt
+# Import the refactored agents and their prompt functions
+from src.ai_agentic_workflow.agents.profile_analyst_agent import get_profile_analyst_agent, get_profile_analyst_prompt
+from src.ai_agentic_workflow.agents.story_architect_agent import get_story_architect_agent, get_story_architect_prompt
+from src.ai_agentic_workflow.agents.style_decoder_agent import get_style_decoder_agent, get_style_decoder_prompt
+from src.ai_agentic_workflow.agents.trend_scout_agent import get_trend_scout_agent, get_trend_scout_prompt
 from src.ai_agentic_workflow.clients.perplexity_client import DualModelPerplexityClient
 from src.ai_agentic_workflow.utils.logging_config import setup_logging
-from src.ai_agentic_workflow.utils.prompt_helper import get_prompt_content
-
-# Import the refactored agents
-from src.ai_agentic_workflow.agents.profile_analyst_agent import get_profile_analyst_agent
-from src.ai_agentic_workflow.agents.trend_scout_agent import get_trend_scout_agent
-from src.ai_agentic_workflow.agents.story_architect_agent import get_story_architect_agent
-from src.ai_agentic_workflow.agents.style_decoder_agent import get_style_decoder_agent
-from src.ai_agentic_workflow.agents.blog_craftsman_agent import get_blog_craftsman_agent
-from src.ai_agentic_workflow.agents.blog_critic_agent import get_blog_critic_agent
-from src.ai_agentic_workflow.agents.blog_alchemist_agent import get_blog_alchemist_agent
-from src.ai_agentic_workflow.agents.community_connector_agent import get_community_connector_agent
-
 
 setup_logging(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
@@ -87,7 +83,6 @@ class BlogCreationWorkflow:
             logger.critical(f"Failed to initialize one or more agents: {e}")
             raise
 
-
     def _parse_json_output(self, raw_output: str) -> Dict[str, Any]:
         """Parse JSON from agent output, handling common formatting issues."""
         try:
@@ -105,9 +100,9 @@ class BlogCreationWorkflow:
             end = cleaned.rfind('}')
             if start != -1 and end != -1 and start < end:
                 try:
-                    return json.loads(cleaned[start:end+1])
+                    return json.loads(cleaned[start:end + 1])
                 except json.JSONDecodeError:
-                    pass # Failed again, return empty dict
+                    pass  # Failed again, return empty dict
 
             return {}
 
@@ -116,18 +111,14 @@ class BlogCreationWorkflow:
         tasks = []
 
         profile_task = Task(
-            description=f"""
-            {get_prompt_content(file_name="blog_profile_analyst_prompt.txt")}
-            """.format(profile_data=project.linkedin_profile),
+            description=get_profile_analyst_prompt(profile_data=project.linkedin_profile),
             expected_output="Expertise profile and story bank in JSON format",
             agent=self.profile_analyst,
         )
         tasks.append(profile_task)
 
         trend_task = Task(
-            description=f"""
-            {get_prompt_content(file_name="blog_trend_scout_prompt.txt")}
-            """.format(
+            description=get_trend_scout_prompt(
                 expertise_areas=json.dumps(
                     project.expertise_profile.get("technical_expertise", {})
                 )
@@ -141,9 +132,7 @@ class BlogCreationWorkflow:
         tasks.append(trend_task)
 
         story_task = Task(
-            description=f"""
-            {get_prompt_content(file_name="blog_story_architect_prompt.txt")}
-            """.format(
+            description=get_story_architect_prompt(
                 selected_topic=json.dumps(project.selected_topic)
                 if project.selected_topic
                 else "",
@@ -161,9 +150,7 @@ class BlogCreationWorkflow:
         tasks.append(story_task)
 
         style_task = Task(
-            description=f"""
-            {get_prompt_content(file_name="blog_style_decoder_prompt.txt")}
-            """.format(
+            description=get_style_decoder_prompt(
                 linkedin_posts="\n\n---POST---\n\n".join(project.linkedin_posts)
                 if project.linkedin_posts
                 else "No posts available"
@@ -174,9 +161,7 @@ class BlogCreationWorkflow:
         tasks.append(style_task)
 
         craft_task = Task(
-            description=f"""
-            {get_prompt_content(file_name="blog_craftsman_prompt.txt")}
-            """.format(
+            description=get_blog_craftsman_prompt(
                 story_blueprint=json.dumps(project.story_blueprint)
                 if project.story_blueprint
                 else "",
@@ -194,9 +179,7 @@ class BlogCreationWorkflow:
         tasks.append(craft_task)
 
         review_task = Task(
-            description=f"""
-            {get_prompt_content(file_name="blog_critic_prompt.txt")}
-            """.format(
+            description=get_blog_critic_prompt(
                 blog_content=project.blog_draft if project.blog_draft else "",
                 profile_data=project.linkedin_profile,
                 style_guide=json.dumps(project.style_guide)
@@ -213,9 +196,7 @@ class BlogCreationWorkflow:
         if project.review_feedback and project.review_feedback.get("overall_score", 0) < self.REVIEW_THRESHOLD:
             logger.info("Review score below threshold, adding enhancement task.")
             enhance_task = Task(
-                description=f"""
-                {get_prompt_content(file_name="blog_alchemist_prompt.txt")}
-                """.format(
+                description=get_blog_alchemist_prompt(
                     blog_content=project.blog_draft,
                     review_feedback=json.dumps(project.review_feedback),
                     style_guide=json.dumps(project.style_guide)
@@ -230,11 +211,8 @@ class BlogCreationWorkflow:
         else:
             logger.info("Review score met threshold, skipping enhancement task.")
 
-
         community_task = Task(
-            description=f"""
-            {get_prompt_content(file_name="blog_community_connector_prompt.txt")}
-            """.format(
+            description=get_community_connector_prompt(
                 blog_content=project.enhanced_blog or project.blog_draft,
                 topic=json.dumps(project.selected_topic)
                 if project.selected_topic
@@ -242,14 +220,14 @@ class BlogCreationWorkflow:
             ),
             expected_output="Enhanced blog with resources and community connections",
             agent=self.community_connector,
-            context=tasks[-1:], # Context should be the last task added, either craft or enhance
+            context=tasks[-1:],  # Context should be the last task added, either craft or enhance
         )
         tasks.append(community_task)
 
         return tasks
 
     def select_best_topic(
-        self, expertise_profile: Dict[str, Any], trending_topics: List[Dict[str, Any]]
+            self, expertise_profile: Dict[str, Any], trending_topics: List[Dict[str, Any]]
     ) -> Dict[str, Any]:
         """Select the best matching topic based on expertise and trends."""
         best_topic = None
@@ -273,7 +251,7 @@ class BlogCreationWorkflow:
                 best_topic = topic
 
         logger.info("Selected topic '%s' with score %s", best_topic.get("topic"), best_score)
-        return best_topic if best_topic else {} # Ensure a dict is always returned
+        return best_topic if best_topic else {}  # Ensure a dict is always returned
 
     def fetch_profile_with_perplexity(self, profile_url: str) -> Tuple[str, List[str]]:
         """Use Perplexity AI to retrieve profile summary and recent posts."""
@@ -299,12 +277,11 @@ class BlogCreationWorkflow:
             logger.error("Perplexity profile retrieval failed: %s", exc)
             return "", []
 
-
     def run(
-        self,
-        linkedin_profile_data: Optional[str] = None,
-        linkedin_profile_url: Optional[str] = None,
-        debug: bool = False,
+            self,
+            linkedin_profile_data: Optional[str] = None,
+            linkedin_profile_url: Optional[str] = None,
+            debug: bool = False,
     ) -> BlogProject:
         """Run the complete blog creation workflow."""
 
@@ -343,13 +320,13 @@ class BlogCreationWorkflow:
                     logger.error("No agents available to run the crew. Exiting.")
                     raise ValueError("No agents initialized for the workflow.")
 
-
                 logger.debug(f"Created tasks: {[t.description for t in tasks]}")
                 crew = Crew(
                     agents=available_agents,
                     tasks=tasks,
                     process=Process.sequential,
                     verbose=debug,
+                    memory=True,
                 )
 
                 logger.debug("Kicking off CrewAI workflow...")
@@ -358,6 +335,8 @@ class BlogCreationWorkflow:
                 logger.debug(f"CrewAI raw outputs: {[o.raw for o in outputs]}")
 
                 # Process outputs
+                # Note: The indices here assume a fixed order of task execution and output
+                # based on the _create_tasks method. Careful debugging is needed if tasks change.
                 if len(outputs) > 0:
                     project.expertise_profile = self._parse_json_output(outputs[0].raw)
                     logger.debug(f"Expertise profile: {project.expertise_profile}")
@@ -388,49 +367,74 @@ class BlogCreationWorkflow:
                 project.final_score = current_score
 
                 # Determine which output contains the final blog based on review score
+                # And handle community resources extraction
                 if current_score < self.REVIEW_THRESHOLD:
                     if len(outputs) > 6:
                         project.enhanced_blog = outputs[6].raw
                         logger.debug(f"Enhanced blog: {project.enhanced_blog}")
-                        if len(outputs) > 7: # If enhancement happened, final blog is typically the next output
-                            project.final_blog = outputs[7].raw
-                            project.community_resources = self._parse_json_output(outputs[8].raw) if len(outputs) > 8 else {}
+                        # If enhancement happened, the next output is the final blog (enhanced + community)
+                        if len(outputs) > 7:
+                            # The community connector agent returns markdown + JSON, so we split
+                            full_output = outputs[7].raw
+                            blog_part, json_part = self._split_markdown_json_output(full_output)
+                            project.final_blog = blog_part
+                            project.community_resources = self._parse_json_output(json_part)
+                            logger.debug(f"Final blog (after enhancement + community): {project.final_blog}")
+                            logger.debug(f"Community resources: {project.community_resources}")
                         else:
-                            logger.warning("Community resources task output not found after enhancement.")
-                            project.final_blog = project.enhanced_blog # Fallback if community task output is missing
+                            logger.warning(
+                                "Community resources task output not found after enhancement. Falling back to enhanced blog as final.")
+                            project.final_blog = project.enhanced_blog  # Fallback if community task output is missing
                     else:
-                        logger.warning("Enhancement expected but corresponding output not found.")
-                        project.final_blog = project.blog_draft # Fallback to draft if enhancement failed
+                        logger.warning(
+                            "Enhancement expected but corresponding output not found. Falling back to blog draft as final.")
+                        project.final_blog = project.blog_draft  # Fallback to draft if enhancement failed
                 else:
-                    if len(outputs) > 6: # If no enhancement, the 6th output is community, 7th is final
-                        project.final_blog = outputs[6].raw
-                        project.community_resources = self._parse_json_output(outputs[7].raw) if len(outputs) > 7 else {}
+                    if len(outputs) > 6:  # If no enhancement, the 6th output is community-enhanced blog
+                        full_output = outputs[6].raw
+                        blog_part, json_part = self._split_markdown_json_output(full_output)
+                        project.final_blog = blog_part
+                        project.community_resources = self._parse_json_output(json_part)
+                        logger.debug(f"Final blog (no enhancement + community): {project.final_blog}")
+                        logger.debug(f"Community resources: {project.community_resources}")
                     else:
-                        logger.warning("Final blog or community resources output missing when review met threshold.")
+                        logger.warning(
+                            "Final blog or community resources output missing when review met threshold. Falling back to blog draft.")
                         project.final_blog = project.blog_draft
-
 
                 if project.final_score >= self.REVIEW_THRESHOLD:
                     logger.info(
                         "Blog created successfully with score %s", project.final_score
                     )
                     break
-            except Exception as exc: # Catching broad exceptions for retry logic
+            except Exception as exc:  # Catching broad exceptions for retry logic
                 logger.error("Error in blog creation attempt %s: %s", attempt, exc, exc_info=True)
                 if attempt == self.MAX_RETRIES:
                     logger.critical("Maximum retries reached. Workflow failed.")
-                    raise # Re-raise if all retries fail
+                    raise  # Re-raise if all retries fail
                 else:
                     logger.info("Retrying workflow...")
                     # Reset relevant project states for retry if needed, or let the next iteration handle it
 
         return project
 
+    def _split_markdown_json_output(self, raw_output: str) -> Tuple[str, str]:
+        """
+        Splits the raw output from Community Connector Agent into markdown and JSON parts.
+        Assumes markdown is first, followed by a JSON block.
+        """
+        json_match = re.search(r"(\{.*\})", raw_output, re.DOTALL)
+        if json_match:
+            json_part = json_match.group(1)
+            markdown_part = raw_output[:json_match.start()].strip()
+            return markdown_part, json_part
+        return raw_output, "{}"  # Return original if no JSON, or empty JSON
+
 
 def run_blog_creation_workflow(
-    linkedin_profile_data: Optional[str] = None,
-    linkedin_profile_url: Optional[str] = None,
-    debug: bool = False,
+        linkedin_profile_data: Optional[str] = None,
+        linkedin_profile_url: Optional[str] = None,
+        debug: bool = False,
 ) -> Dict[str, Any]:
     """Convenience function to run the blog creation workflow."""
     workflow = BlogCreationWorkflow()
@@ -461,11 +465,12 @@ if __name__ == "__main__":  # pragma: no cover - manual test
     # For a real run, you'd populate linkedin_profile_data or linkedin_profile_url
     # with actual content or a valid URL.
     # linkedin_data_example = "My LinkedIn profile states I am a Senior Software Engineer with expertise in Python, Machine Learning, and Cloud Computing. I've worked on projects involving natural language processing and distributed systems."
-    
+
     # Using a placeholder URL as Perplexity access might be restricted or require specific setup
     # Make sure your environment variables for Perplexity API key are set if using URL.
     # You might also need to ensure the Perplexity client can access public LinkedIn profiles.
-    result = run_blog_creation_workflow(debug=True, linkedin_profile_url="https://www.linkedin.com/in/neerajkumarsinghb/")
+    result = run_blog_creation_workflow(debug=True,
+                                        linkedin_profile_url="https://www.linkedin.com/in/neerajkumarsinghb/")
 
     print("\n=== BLOG CREATION RESULTS ===")
     print(f"Selected Topic: {result.get('selected_topic', {}).get('topic', 'N/A')}")
