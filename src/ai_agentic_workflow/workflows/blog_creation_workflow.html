@@ -3,298 +3,158 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Agentic Blog Creation Workflow</title>
+    <title>Blog Creation Workflow</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            line-height: 1.6;
-            margin: 20px;
-            background-color: #f4f4f4;
-            color: #333;
-        }
-        .container {
-            max-width: 900px;
-            margin: auto;
-            background: #fff;
-            padding: 30px;
+        .workflow-step {
+            border: 1px solid #dee2e6;
             border-radius: 8px;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+            background: #f8f9fa;
         }
-        h1, h2 {
-            color: #0056b3;
-            text-align: center;
+        .step-header {
+            background: #e9ecef;
+            padding: 15px;
+            border-bottom: 1px solid #dee2e6;
+            border-radius: 8px 8px 0 0;
         }
-        .step-section {
-            border: 1px solid #ddd;
+        .step-content {
             padding: 20px;
-            margin-bottom: 20px;
-            border-radius: 5px;
-            background-color: #fdfdfd;
         }
-        .step-section.hidden {
-            display: none;
-        }
-        label {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: bold;
-        }
-        textarea {
-            width: calc(100% - 20px);
-            padding: 10px;
-            margin-bottom: 15px;
-            border: 1px solid #ccc;
+        .prompt-text {
+            background: #fff;
+            border: 1px solid #ced4da;
             border-radius: 4px;
-            min-height: 100px;
-            font-family: monospace;
-            font-size: 0.9em;
-            resize: vertical;
-        }
-        button {
-            background-color: #007bff;
-            color: white;
-            padding: 10px 15px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 1em;
-            margin-top: 10px;
-        }
-        button:hover {
-            background-color: #0056b3;
-        }
-        .instructions {
-            background-color: #e9f7ef;
-            border-left: 5px solid #28a745;
             padding: 15px;
-            margin-bottom: 20px;
-            border-radius: 4px;
-        }
-        .output-display {
-            background-color: #eef;
-            border: 1px solid #cce;
-            padding: 15px;
-            margin-top: 10px;
-            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
             white-space: pre-wrap;
-            font-family: monospace;
-            font-size: 0.9em;
+            max-height: 300px;
+            overflow-y: auto;
         }
-        .warning {
-            color: #dc3545;
-            font-weight: bold;
-            margin-top: 10px;
+        .final-prompt {
+            background: #e7f3ff;
+            border: 2px solid #007bff;
+        }
+        .response-area {
+            min-height: 200px;
+            background: #f0f9ff;
+            border: 2px solid #0ea5e9;
+        }
+        .data-display {
+            background: #f0fdf4;
+            border: 1px solid #22c55e;
+            border-radius: 4px;
+            padding: 10px;
+            margin: 10px 0;
+            font-size: 12px;
+        }
+        .step-number {
+            background: #007bff;
+            color: white;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 10px;
+        }
+        .copy-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            z-index: 10;
+        }
+        .column-container {
+            position: relative;
+        }
+        .step-completed {
+            background: #d4edda !important;
+            border-color: #c3e6cb !important;
+        }
+        .collapse-toggle {
+            cursor: pointer;
+            user-select: none;
+        }
+        .nav-pills .nav-link.active {
+            background-color: #007bff;
+        }
+        .progress {
+            height: 25px;
+            margin-bottom: 20px;
+        }
+        .progress-bar {
+            font-size: 14px;
+            line-height: 25px;
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>AI Agentic Blog Creation Workflow</h1>
-        <p style="text-align: center;">Manually step through the workflow by providing inputs and pasting AI responses.</p>
+    <div class="container-fluid py-4">
+        <div class="row">
+            <div class="col-12">
+                <h1 class="text-center mb-4">
+                    <i class="fas fa-blog"></i> Blog Creation Workflow
+                </h1>
+                
+                <!-- Progress Bar -->
+                <div class="progress">
+                    <div class="progress-bar" role="progressbar" style="width: 0%" id="progressBar">
+                        Step 0 of 8
+                    </div>
+                </div>
 
-        <div id="workflow-start" class="step-section">
-            <h2>Step 0: Initial Setup</h2>
-            <div class="instructions">
-                <p>To begin, please provide the LinkedIn profile data that the 'LinkedIn Profile Analyst' agent will process. This should be a summary of the person's professional experience, skills, and projects, which could be extracted from a LinkedIn profile.</p>
-                <p>This initial input drives the first step of the workflow.</p>
+                <!-- Step Navigation -->
+                <ul class="nav nav-pills mb-4 justify-content-center" id="stepNavigation">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="#step1" data-step="1">1. Profile Analysis</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#step2" data-step="2">2. Trend Research</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#step3" data-step="3">3. Story Architecture</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#step4" data-step="4">4. Style Analysis</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#step5" data-step="5">5. Blog Crafting</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#step6" data-step="6">6. Blog Review</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#step7" data-step="7">7. Enhancement</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#step8" data-step="8">8. Community</a>
+                    </li>
+                </ul>
             </div>
-            <label for="linkedinProfileData">LinkedIn Profile Data (text format):</label>
-            <textarea id="linkedinProfileData" rows="10" placeholder="e.g., John Doe - Senior Software Engineer. Experience: Led migration from monolith to microservices using React, Node.js..."></textarea>
-            <button onclick="startWorkflow()">Start Workflow</button>
         </div>
 
-        <div id="step-profile-analyst" class="step-section hidden">
-            <h2>Step 1: LinkedIn Profile Analyst</h2>
-            <div class="instructions">
-                <p><strong>Action:</strong> Copy the prompt below, paste it into your AI of choice, and get the response.</p>
-                <p><strong>Expected AI Output Format:</strong> The AI should return a JSON object with <code>technical_expertise</code>, <code>career_stories</code>, <code>writing_angles</code>, and <code>target_audience_alignment</code>.</p>
+        <!-- Step 1: Profile Analysis -->
+        <div class="workflow-step" id="step1">
+            <div class="step-header">
+                <h3 class="collapse-toggle" data-bs-toggle="collapse" data-bs-target="#step1Content">
+                    <span class="step-number">1</span>LinkedIn Profile Analysis
+                    <i class="fas fa-chevron-down float-end"></i>
+                </h3>
             </div>
-            <label for="profileAnalystPrompt">Full Prompt for AI:</label>
-            <textarea id="profileAnalystPrompt" rows="15" readonly></textarea>
-            <label for="profileAnalystResponse">Paste AI Response (JSON format):</label>
-            <textarea id="profileAnalystResponse" rows="10"></textarea>
-            <button onclick="processProfileAnalystStep()">Next Step (Trend Scout & Story Architect)</button>
-            <div id="profileAnalystWarning" class="warning"></div>
-        </div>
-
-        <div id="step-trend-scout" class="step-section hidden">
-            <h2>Step 2: Tech Trend Researcher</h2>
-            <div class="instructions">
-                <p><strong>Action:</strong> Copy the prompt below, paste it into your AI of choice, and get the response.</p>
-                <p><strong>Expected AI Output Format:</strong> The AI should return a JSON object with <code>trending_topics</code>, <code>emerging_themes</code>, and <code>recommended_focus</code>.</p>
-            </div>
-            <label for="trendScoutPrompt">Full Prompt for AI:</label>
-            <textarea id="trendScoutPrompt" rows="15" readonly></textarea>
-            <label for="trendScoutResponse">Paste AI Response (JSON format):</label>
-            <textarea id="trendScoutResponse" rows="10"></textarea>
-            <button onclick="processTrendScoutStep()">Next Step (Style Decoder)</button>
-            <div id="trendScoutWarning" class="warning"></div>
-        </div>
-
-        <div id="step-story-architect" class="step-section hidden">
-            <h2>Step 3: Narrative Designer (Story Architect)</h2>
-            <div class="instructions">
-                <p><strong>Action:</strong> Copy the prompt below, paste it into your AI of choice, and get the response.</p>
-                <p><strong>Expected AI Output Format:</strong> The AI should return a JSON object with <code>story_title</code>, <code>narrative_arc</code>, <code>technical_sections</code>, <code>emotional_beats</code>, <code>relatability_points</code>, and <code>estimated_read_time</code>.</p>
-            </div>
-            <label for="storyArchitectPrompt">Full Prompt for AI:</label>
-            <textarea id="storyArchitectPrompt" rows="15" readonly></textarea>
-            <label for="storyArchitectResponse">Paste AI Response (JSON format):</label>
-            <textarea id="storyArchitectResponse" rows="10"></textarea>
-            <button onclick="processStoryArchitectStep()">Next Step (Blog Craftsman)</button>
-            <div id="storyArchitectWarning" class="warning"></div>
-        </div>
-
-        <div id="step-style-decoder" class="step-section hidden">
-            <h2>Step 4: Writing Style Analyst (Style Decoder)</h2>
-            <div class="instructions">
-                <p><strong>Action:</strong> Provide sample LinkedIn posts (as text) that represent the author's writing style. Then, copy the generated prompt, paste it into your AI of choice, and get the response.</p>
-                <p><strong>Expected AI Output Format:</strong> The AI should return a JSON object with <code>voice_profile</code>, <code>structural_patterns</code>, <code>engagement_techniques</code>, <code>authenticity_markers</code>, <code>unique_expressions</code>, <code>code_explanation_style</code>, and <code>storytelling_rhythm</code>.</p>
-            </div>
-            <label for="linkedinPostsData">Sample LinkedIn Posts (one per line, or separated by "---POST---"):</label>
-            <textarea id="linkedinPostsData" rows="10" placeholder="Post 1 content...&#10;&#10;---POST---&#10;&#10;Post 2 content..."></textarea>
-            <label for="styleDecoderPrompt">Full Prompt for AI:</label>
-            <textarea id="styleDecoderPrompt" rows="15" readonly></textarea>
-            <button onclick="generateStyleDecoderPrompt()">Generate Prompt</button>
-            <label for="styleDecoderResponse">Paste AI Response (JSON format):</label>
-            <textarea id="styleDecoderResponse" rows="10"></textarea>
-            <button onclick="processStyleDecoderStep()">Next Step (Blog Craftsman)</button>
-            <div id="styleDecoderWarning" class="warning"></div>
-        </div>
-
-        <div id="step-blog-craftsman" class="step-section hidden">
-            <h2>Step 5: Technical Blog Writer (Blog Craftsman)</h2>
-            <div class="instructions">
-                <p><strong>Action:</strong> Copy the prompt below, paste it into your AI of choice, and get the response.</p>
-                <p><strong>Expected AI Output Format:</strong> The AI should return the complete blog post in markdown format.</p>
-            </div>
-            <label for="blogCraftsmanPrompt">Full Prompt for AI:</label>
-            <textarea id="blogCraftsmanPrompt" rows="15" readonly></textarea>
-            <label for="blogCraftsmanResponse">Paste AI Response (Markdown format):</label>
-            <textarea id="blogCraftsmanResponse" rows="10"></textarea>
-            <button onclick="processBlogCraftsmanStep()">Finish (or continue to Review)</button>
-        </div>
-
-        <div id="step-blog-critic" class="step-section hidden">
-            <h2>Step 6: Blog Quality Reviewer (Blog Critic)</h2>
-            <div class="instructions">
-                <p><strong>Action:</strong> Copy the prompt below, paste it into your AI of choice, and get the response.</p>
-                <p><strong>Expected AI Output Format:</strong> The AI should return a JSON object with a detailed critique, including <code>authenticity_score</code>, <code>engagement_score</code>, <code>technical_accuracy_score</code>, <code>areas_for_improvement</code>, and <code>strengths</code>.</p>
-            </div>
-            <label for="blogCriticPrompt">Full Prompt for AI:</label>
-            <textarea id="blogCriticPrompt" rows="15" readonly></textarea>
-            <label for="blogCriticResponse">Paste AI Response (JSON format):</label>
-            <textarea id="blogCriticResponse" rows="10"></textarea>
-            <button onclick="processBlogCriticStep()">Next Step (Content Enhancement Specialist)</button>
-            <div id="blogCriticWarning" class="warning"></div>
-        </div>
-
-        <div id="step-blog-alchemist" class="step-section hidden">
-            <h2>Step 7: Content Enhancement Specialist (Blog Alchemist)</h2>
-            <div class="instructions">
-                <p><strong>Action:</strong> Copy the prompt below, paste it into your AI of choice, and get the response.</p>
-                <p><strong>Expected AI Output Format:</strong> The AI should return the revised blog post in markdown format.</p>
-            </div>
-            <label for="blogAlchemistPrompt">Full Prompt for AI:</label>
-            <textarea id="blogAlchemistPrompt" rows="15" readonly></textarea>
-            <label for="blogAlchemistResponse">Paste AI Response (Markdown format):</label>
-            <textarea id="blogAlchemistResponse" rows="10"></textarea>
-            <button onclick="processBlogAlchemistStep()">Next Step (Resource Curator)</button>
-        </div>
-
-        <div id="step-blog-community-connector" class="step-section hidden">
-            <h2>Step 8: Resource Curator (Blog Community Connector)</h2>
-            <div class="instructions">
-                <p><strong>Action:</strong> Copy the prompt below, paste it into your AI of choice, and get the response.</p>
-                <p><strong>Expected AI Output Format:</strong> The AI should return a JSON object with <code>related_communities</code>, <code>relevant_influencers</code>, <code>additional_resources</code>, and <code>call_to_action_suggestions</code>.</p>
-            </div>
-            <label for="blogCommunityConnectorPrompt">Full Prompt for AI:</label>
-            <textarea id="blogCommunityConnectorPrompt" rows="15" readonly></textarea>
-            <label for="blogCommunityConnectorResponse">Paste AI Response (JSON format):</label>
-            <textarea id="blogCommunityConnectorResponse" rows="10"></textarea>
-            <button onclick="processBlogCommunityConnectorStep()">Finalize Blog Post</button>
-            <div id="blogCommunityConnectorWarning" class="warning"></div>
-        </div>
-
-        <div id="workflow-complete" class="step-section hidden">
-            <h2>Workflow Completed</h2>
-            <div class="instructions">
-                <p>You have successfully guided the workflow to produce the final blog content and additional resources.</p>
-            </div>
-            <h3>Final Blog Draft:</h3>
-            <div id="finalBlogOutput" class="output-display"></div>
-            <h3>Community Connections & Resources:</h3>
-            <div id="communityResourcesOutput" class="output-display"></div>
-        </div>
-    </div>
-
-    <script>
-        let workflowState = {
-            linkedin_profile: "",
-            expertise_profile: null,
-            trending_topics: null,
-            selected_topic: null, // Will be set from trending_topics
-            story_blueprint: null,
-            style_guide: null,
-            linkedin_posts: [],
-            blog_draft: null, // Initial draft from Craftsman
-            blog_critique: null,
-            blog_revised_draft: null, // Revised draft from Alchemist
-            community_resources: null,
-            currentStepIndex: 0 // Index into the `steps` array
-        };
-
-        const steps = [
-            'workflow-start',
-            'step-profile-analyst',
-            'step-trend-scout',
-            'step-story-architect',
-            'step-style-decoder',
-            'step-blog-craftsman',
-            'step-blog-critic',
-            'step-blog-alchemist',
-            'step-blog-community-connector',
-            'workflow-complete'
-        ];
-
-        // Store prompt templates fetched from files
-        const promptTemplates = {};
-
-        // Function to fetch prompt templates
-        async function fetchPromptTemplates() {
-            const promptFiles = {
-                'blog_profile_analyst_prompt.txt': 'profileAnalystPrompt',
-                'blog_trend_scout_prompt.txt': 'trendScoutPrompt',
-                'blog_story_architect_prompt.txt': 'storyArchitectPrompt',
-                'blog_style_decoder_prompt.txt': 'styleDecoderPrompt',
-                'blog_craftsman_prompt.txt': 'blogCraftsmanPrompt',
-                'blog_critic_prompt.txt': 'blogCriticPrompt',
-                'blog_alchemist_prompt.txt': 'blogAlchemistPrompt',
-                'blog_community_connector_prompt.txt': 'blogCommunityConnectorPrompt'
-            };
-
-            for (const file in promptFiles) {
-                try {
-                    // In a real deployed scenario, you'd host these files and fetch them via AJAX/Fetch API.
-                    // For a standalone HTML, we'll embed them directly or fetch from a known local path if server is running.
-                    // For now, let's hardcode a placeholder indicating where they would come from.
-                    // In a true "standalone" file without a server, you'd literally copy-paste the prompt content here.
-                    // Since I cannot read local files directly from a browser's perspective, I will simulate this by embedding.
-                    // For now, I will fetch them programmatically via code interpreter if allowed, or put placeholders.
-                    // Given the constraint "create a standalone html file", a real fetch won't work without a server.
-                    // So, I'll dynamically populate them using the exact content from the `src/ai_agentic_workflow/prompts` directory.
-                } catch (error) {
-                    console.error(`Error fetching prompt ${file}:`, error);
-                    promptTemplates[file] = `ERROR: Could not load prompt from ${file}. Please manually copy the content of this prompt file here.`;
-                }
-            }
-
-            // Manually populate promptTemplates with content from the provided files
-            // This would be replaced by actual fetch requests if running on a server.
-            promptTemplates['blog_profile_analyst_prompt.txt'] = `Analyze the following LinkedIn profile data to extract expertise and potential story narratives:
+            <div class="collapse show" id="step1Content">
+                <div class="step-content">
+                    <div class="row">
+                        <!-- Predefined Prompt -->
+                        <div class="col-md-3">
+                            <h5><i class="fas fa-file-text"></i> Predefined Prompt</h5>
+                            <div class="prompt-text">
+Analyze the following LinkedIn profile data to extract expertise and potential story narratives:
 
 Profile Data:
-{linkedin_profile}
+{profile_input}
 
 Your task:
 1. Identify all technical skills and years of experience with each
@@ -304,6 +164,7 @@ Your task:
 5. Identify career progression patterns and learning moments
 
 Focus on finding human stories behind the technical experience that would resonate with junior to mid-level developers.
+
 OUTPUT FORMAT as JSON:
 {{
     "technical_expertise": {{
@@ -325,469 +186,1184 @@ OUTPUT FORMAT as JSON:
     "target_audience_alignment": "how experience matches junior/mid dev needs"
 }}
 
-IMPORTANT: Return ONLY the JSON object, no markdown formatting or additional text.`;
+IMPORTANT: Return ONLY the JSON object, no markdown formatting or additional text
+                            </div>
+                        </div>
 
-            promptTemplates['blog_trend_scout_prompt.txt'] = `Research current trending topics in software development across multiple platforms.
-Search Scope:
-1. Latest LLM model releases and AI developments
-2. Popular discussions on Dev.to, Medium tech publications, HackerNews
-3. Trending GitHub repositories and technologies
-4. Common developer pain points from Stack Overflow
-5. Most requested skills in job postings
-6. Topics that junior to mid-level developers are struggling with
+                        <!-- Input Data -->
+                        <div class="col-md-4">
+                            <h5><i class="fas fa-edit"></i> LinkedIn Profile Input</h5>
+                            <div class="alert alert-info">
+                                <small><i class="fas fa-info-circle"></i> Provide either profile data OR LinkedIn URL (not both)</small>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="profileData" class="form-label">Option 1: Profile Data</label>
+                                <textarea class="form-control" rows="8" id="profileData" placeholder="Paste LinkedIn profile information here..."></textarea>
+                            </div>
+                            
+                            <div class="text-center my-2">
+                                <strong>-- OR --</strong>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="profileUrl" class="form-label">Option 2: LinkedIn URL</label>
+                                <input type="text" class="form-control" id="profileUrl" placeholder="https://linkedin.com/in/username">
+                                <small class="text-muted">The AI will analyze the profile directly from the URL</small>
+                            </div>
+                        </div>
 
-Additional Context:
-- User Expertise Areas: {expertise_areas}
-- Target Audience: Junior to mid-level developers, job seekers
+                        <!-- Final Prompt -->
+                        <div class="col-md-3 column-container">
+                            <h5><i class="fas fa-copy"></i> Final Prompt</h5>
+                            <button class="btn btn-sm btn-outline-primary copy-btn" onclick="copyToClipboard('finalPrompt1')">
+                                <i class="fas fa-copy"></i>
+                            </button>
+                            <div class="prompt-text final-prompt" id="finalPrompt1">
+                                Click "Generate Prompt" to create the final prompt with your data.
+                            </div>
+                            <button class="btn btn-primary mt-2" onclick="generateFinalPrompt(1)">
+                                <i class="fas fa-magic"></i> Generate Prompt
+                            </button>
+                        </div>
 
-Find 15-20 trending topics that:
-- Are currently generating high engagement
-- Match the user's expertise areas when possible
-- Would be valuable for the target audience
-- Have teaching/learning potential
+                        <!-- Response -->
+                        <div class="col-md-2">
+                            <h5><i class="fas fa-robot"></i> AI Response</h5>
+                            <textarea class="form-control response-area" id="response1" placeholder="Paste AI response here..."></textarea>
+                            <button class="btn btn-success mt-2" onclick="saveStepData(1)">
+                                <i class="fas fa-save"></i> Save & Next
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
 
-OUTPUT FORMAT as JSON:
-{{
-    "trending_topics": [
-        {{
-            "topic": "topic title",
-            "category": "AI/Frontend/Backend/DevOps/Career",
-            "engagement_score": 0-100,
-            "source": "where you found it",
-            "relevance_reason": "why this matters now",
-            "teaching_potential": "what readers would learn",
-            "difficulty_level": "beginner/intermediate"
-        }}
-    ],
-    "emerging_themes": ["theme1", "theme2"],
-    "recommended_focus": "suggested priority area based on trends"
-}}
+        <!-- Step 2: Trend Research -->
+        <div class="workflow-step" id="step2">
+            <div class="step-header">
+                <h3 class="collapse-toggle" data-bs-toggle="collapse" data-bs-target="#step2Content">
+                    <span class="step-number">2</span>Tech Trend Research
+                    <i class="fas fa-chevron-down float-end"></i>
+                </h3>
+            </div>
+            <div class="collapse" id="step2Content">
+                <div class="step-content">
+                    <div class="row">
+                        <!-- Predefined Prompt -->
+                        <div class="col-md-3">
+                            <h5><i class="fas fa-file-text"></i> Predefined Prompt</h5>
+                            <div class="prompt-text">
+Research and identify 5-7 trending topics in technology that match the following expertise areas:
 
-IMPORTANT: Return ONLY the JSON object, no markdown formatting or additional text.`;
+{expertise_areas}
 
-            promptTemplates['blog_story_architect_prompt.txt'] = `Design a compelling story structure for a technical blog post.
-Topic: {selected_topic}
-User's Expertise Profile: {expertise_profile}
-User's Story Bank: {story_bank}
-Target Audience: Junior to mid-level developers
+For each topic, provide:
 
-Create a narrative blueprint that:
-1. Matches the trending topic to a personal experience or learning journey
-2. Designs an emotional arc that keeps readers engaged
-3. Identifies the "aha moment" that readers will remember
-4. Plans specific code examples or technical demonstrations
-5. Ensures the story feels authentic to the user's experience
+1. **Topic Details**:
+   - Topic name and description
+   - Why it's trending now
+   - Current engagement levels
+   - Target audience
 
-Story Structure Requirements:
-- Hook: Personal struggle or intriguing question
-- Journey: The path to understanding (include failures/mistakes)
-- Technical Deep-Dive: Practical implementation with code
-- Transformation: What changed after learning this
-- Call to Action: How readers can apply this
+2. **Alignment Score**:
+   - Match with user expertise (1-10)
+   - Teaching potential (1-10)
+   - Audience interest (1-10)
+   - Content gap opportunity (1-10)
 
-OUTPUT FORMAT as JSON:
-{{
-    "story_title": "engaging title with personal angle",
-    "narrative_arc": {{
-        "hook": "opening that grabs attention",
-        "personal_connection": "why YOU faced this problem",
-        "struggle_description": "what made it hard",
-        "journey_milestones": ["attempt 1", "attempt 2", "breakthrough"],
-        "aha_moment": "the key realization",
-        "transformation": "how it changed your approach"
-    }},
-    "technical_sections": [
-        {{
-            "concept": "what to explain",
-            "code_example": "type of code to include",
-            "common_mistakes": "what to warn about"
-        }}
-    ],
-    "emotional_beats": ["frustration", "curiosity", "breakthrough", "empowerment"],
-    "relatability_points": ["specific moments juniors will recognize"],
-    "estimated_read_time": "X minutes"
-}}
+3. **Content Angle**:
+   - Unique perspective to take
+   - Personal experience connection
+   - Practical value proposition
 
-IMPORTANT: Return ONLY the JSON object, no markdown formatting or additional text.`;
+Return as JSON:
+{
+  "trending_topics": [
+    {
+      "topic": "",
+      "category": "",
+      "engagement_score": 0,
+      "difficulty_level": "",
+      "teaching_potential": true/false,
+      "content_angle": ""
+    }
+  ]
+}
+                            </div>
+                        </div>
 
-            promptTemplates['blog_style_decoder_prompt.txt'] = `Analyze the following LinkedIn posts to decode the author's unique writing style:
+                        <!-- Input Data -->
+                        <div class="col-md-4">
+                            <h5><i class="fas fa-edit"></i> Additional Context</h5>
+                            <div class="data-display" id="expertiseDisplay">
+                                Expertise data will appear here after completing Step 1
+                            </div>
+                            <textarea class="form-control" rows="6" id="trendContext" placeholder="Add any additional context for trend research..."></textarea>
+                        </div>
 
-LinkedIn Posts:
+                        <!-- Final Prompt -->
+                        <div class="col-md-3 column-container">
+                            <h5><i class="fas fa-copy"></i> Final Prompt</h5>
+                            <button class="btn btn-sm btn-outline-primary copy-btn" onclick="copyToClipboard('finalPrompt2')">
+                                <i class="fas fa-copy"></i>
+                            </button>
+                            <div class="prompt-text final-prompt" id="finalPrompt2">
+                                Complete Step 1 first, then generate prompt.
+                            </div>
+                            <button class="btn btn-primary mt-2" onclick="generateFinalPrompt(2)">
+                                <i class="fas fa-magic"></i> Generate Prompt
+                            </button>
+                        </div>
+
+                        <!-- Response -->
+                        <div class="col-md-2">
+                            <h5><i class="fas fa-robot"></i> AI Response</h5>
+                            <textarea class="form-control response-area" id="response2" placeholder="Paste AI response here..."></textarea>
+                            <button class="btn btn-success mt-2" onclick="saveStepData(2)">
+                                <i class="fas fa-save"></i> Save & Next
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Step 3: Story Architecture -->
+        <div class="workflow-step" id="step3">
+            <div class="step-header">
+                <h3 class="collapse-toggle" data-bs-toggle="collapse" data-bs-target="#step3Content">
+                    <span class="step-number">3</span>Story Architecture
+                    <i class="fas fa-chevron-down float-end"></i>
+                </h3>
+            </div>
+            <div class="collapse" id="step3Content">
+                <div class="step-content">
+                    <div class="row">
+                        <!-- Predefined Prompt -->
+                        <div class="col-md-3">
+                            <h5><i class="fas fa-file-text"></i> Predefined Prompt</h5>
+                            <div class="prompt-text">
+Create a compelling story blueprint that combines the selected topic with personal experience:
+
+Selected Topic: {selected_topic}
+Expertise Profile: {expertise_profile}
+Available Stories: {story_bank}
+
+Design a narrative structure with:
+
+1. **Hook & Opening**:
+   - Attention-grabbing opening
+   - Personal anecdote or problem
+   - Why this matters now
+
+2. **Story Arc**:
+   - The challenge or journey
+   - Key learning moments
+   - Technical insights gained
+   - How it changed approach
+
+3. **Technical Deep Dive**:
+   - Core concepts to explain
+   - Practical examples
+   - Code snippets or demos
+   - Best practices learned
+
+4. **Resolution & Value**:
+   - Lessons learned
+   - Actionable takeaways
+   - Future implications
+   - Call to action
+
+Return as JSON with detailed structure for each section.
+                            </div>
+                        </div>
+
+                        <!-- Input Data -->
+                        <div class="col-md-4">
+                            <h5><i class="fas fa-edit"></i> Topic Selection & Context</h5>
+                            <div class="data-display" id="topicSelection">
+                                <label for="selectedTopic">Select Topic:</label>
+                                <select class="form-select" id="selectedTopic">
+                                    <option value="">Complete Step 2 first</option>
+                                </select>
+                            </div>
+                            <div class="data-display" id="storyContext">
+                                Expertise and stories will appear here after completing previous steps
+                            </div>
+                            <textarea class="form-control" rows="4" id="additionalStory" placeholder="Add any additional story context or specific experiences..."></textarea>
+                        </div>
+
+                        <!-- Final Prompt -->
+                        <div class="col-md-3 column-container">
+                            <h5><i class="fas fa-copy"></i> Final Prompt</h5>
+                            <button class="btn btn-sm btn-outline-primary copy-btn" onclick="copyToClipboard('finalPrompt3')">
+                                <i class="fas fa-copy"></i>
+                            </button>
+                            <div class="prompt-text final-prompt" id="finalPrompt3">
+                                Complete previous steps first, then generate prompt.
+                            </div>
+                            <button class="btn btn-primary mt-2" onclick="generateFinalPrompt(3)">
+                                <i class="fas fa-magic"></i> Generate Prompt
+                            </button>
+                        </div>
+
+                        <!-- Response -->
+                        <div class="col-md-2">
+                            <h5><i class="fas fa-robot"></i> AI Response</h5>
+                            <textarea class="form-control response-area" id="response3" placeholder="Paste AI response here..."></textarea>
+                            <button class="btn btn-success mt-2" onclick="saveStepData(3)">
+                                <i class="fas fa-save"></i> Save & Next
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Step 4: Style Analysis -->
+        <div class="workflow-step" id="step4">
+            <div class="step-header">
+                <h3 class="collapse-toggle" data-bs-toggle="collapse" data-bs-target="#step4Content">
+                    <span class="step-number">4</span>Writing Style Analysis
+                    <i class="fas fa-chevron-down float-end"></i>
+                </h3>
+            </div>
+            <div class="collapse" id="step4Content">
+                <div class="step-content">
+                    <div class="row">
+                        <!-- Predefined Prompt -->
+                        <div class="col-md-3">
+                            <h5><i class="fas fa-file-text"></i> Predefined Prompt</h5>
+                            <div class="prompt-text">
+Analyze the following LinkedIn posts to decode the unique writing style:
+
 {linkedin_posts}
 
 Extract and codify:
-1. Voice characteristics (formal/casual, humor style, personality traits)
-2. Structural patterns (how they start posts, transition between ideas)
-3. Engagement techniques (questions, calls to action, hooks)
-4. Code explanation approach (if present)
-5. Vulnerability patterns (how they admit mistakes or share learning)
-6. Unique phrases or expressions they frequently use
-7. Storytelling techniques
 
-Create a comprehensive style guide that another writer could use to mimic this voice authentically.
-OUTPUT FORMAT as JSON:
-{{
-    "voice_profile": {{
-        "tone": "description of overall tone",
-        "formality_level": "casual/professional/mixed",
-        "humor_style": "self-deprecating/witty/none",
-        "personality_markers": ["trait1", "trait2"]
-    }},
-    "structural_patterns": {{
-        "opening_styles": ["pattern1", "pattern2"],
-        "transition_phrases": ["phrase1", "phrase2"],
-        "closing_patterns": ["pattern1", "pattern2"]
-    }},
-    "engagement_techniques": {{
-        "question_types": ["rhetorical", "direct"],
-        "cta_style": "how they ask for engagement",
-        "hook_patterns": ["pattern1", "pattern2"]
-    }},
-    "authenticity_markers": {{
-        "vulnerability_phrases": ["phrase1", "phrase2"],
-        "learning_admissions": "how they talk about mistakes",
-        "encouragement_style": "how they motivate readers"
-    }},
-    "unique_expressions": ["signature phrase1", "phrase2"],
-    "code_explanation_style": "how they introduce and explain code",
-    "storytelling_rhythm": "pacing and flow characteristics"
-}}
+1. **Voice & Tone**:
+   - Formal vs casual language
+   - Technical vs accessible explanations
+   - Emotional resonance level
+   - Confidence and authority
 
-IMPORTANT: Return ONLY the JSON object, no markdown formatting or additional text.`;
+2. **Structure Patterns**:
+   - Post opening styles
+   - Paragraph length preferences
+   - Use of lists and formatting
+   - Conclusion patterns
 
-            promptTemplates['blog_craftsman_prompt.txt'] = `Write a complete technical blog post using the provided story blueprint and style guide.
+3. **Language Characteristics**:
+   - Vocabulary complexity
+   - Sentence structure
+   - Use of metaphors/analogies
+   - Technical jargon balance
+
+4. **Engagement Style**:
+   - Question usage
+   - Call-to-action patterns
+   - Community interaction approach
+   - Personal disclosure level
+
+Return comprehensive style guide as JSON.
+                            </div>
+                        </div>
+
+                        <!-- Input Data -->
+                        <div class="col-md-4">
+                            <h5><i class="fas fa-edit"></i> LinkedIn Posts</h5>
+                            <textarea class="form-control" rows="10" id="linkedinPosts" placeholder="Paste LinkedIn posts for style analysis..."></textarea>
+                        </div>
+
+                        <!-- Final Prompt -->
+                        <div class="col-md-3 column-container">
+                            <h5><i class="fas fa-copy"></i> Final Prompt</h5>
+                            <button class="btn btn-sm btn-outline-primary copy-btn" onclick="copyToClipboard('finalPrompt4')">
+                                <i class="fas fa-copy"></i>
+                            </button>
+                            <div class="prompt-text final-prompt" id="finalPrompt4">
+                                Add LinkedIn posts, then generate prompt.
+                            </div>
+                            <button class="btn btn-primary mt-2" onclick="generateFinalPrompt(4)">
+                                <i class="fas fa-magic"></i> Generate Prompt
+                            </button>
+                        </div>
+
+                        <!-- Response -->
+                        <div class="col-md-2">
+                            <h5><i class="fas fa-robot"></i> AI Response</h5>
+                            <textarea class="form-control response-area" id="response4" placeholder="Paste AI response here..."></textarea>
+                            <button class="btn btn-success mt-2" onclick="saveStepData(4)">
+                                <i class="fas fa-save"></i> Save & Next
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Step 5: Blog Crafting -->
+        <div class="workflow-step" id="step5">
+            <div class="step-header">
+                <h3 class="collapse-toggle" data-bs-toggle="collapse" data-bs-target="#step5Content">
+                    <span class="step-number">5</span>Blog Crafting
+                    <i class="fas fa-chevron-down float-end"></i>
+                </h3>
+            </div>
+            <div class="collapse" id="step5Content">
+                <div class="step-content">
+                    <div class="row">
+                        <!-- Predefined Prompt -->
+                        <div class="col-md-3">
+                            <h5><i class="fas fa-file-text"></i> Predefined Prompt</h5>
+                            <div class="prompt-text">
+Write a compelling technical blog post using:
+
 Story Blueprint: {story_blueprint}
 Style Guide: {style_guide}
 Topic Details: {topic_details}
-Target Length: 600-800 words (2-3 minute read)
 
-Writing Requirements:
-1. Start with a personal hook that immediately connects with readers
-2. Use the exact voice and style patterns from the style guide
-3. Follow the narrative arc from the blueprint
-4. Include practical code examples with explanations
-5. Share genuine struggles and "failed attempts" before success
-6. Add conversational transitions and personality
-7. End with encouragement and clear next steps
+Create a complete blog post with:
 
-Structure:
-- Hook (10%): Personal struggle or relatable question
-- Context (15%): Why this matters right now
-- Journey (30%): Your experience, including mistakes
-- Technical Deep-Dive (30%): Code examples with explanations
-- Lessons & Takeaways (10%): What you learned
-- Call to Action (5%): Encourage readers to try
+1. **Engaging Title**: Hook readers immediately
+2. **Strong Opening**: Personal story or compelling problem
+3. **Technical Content**: Clear explanations with examples
+4. **Personal Insights**: Unique perspectives and lessons
+5. **Practical Value**: Actionable takeaways
+6. **Strong Conclusion**: Memorable ending with CTA
 
-Remember:
-- Write like you're explaining to a friend who needs help
-- Include specific details ("On that Tuesday morning...")
-- Use humor and vulnerability appropriately
-- Make technical concepts accessible
-- Focus on helping junior/mid-level developers
+Requirements:
+- 1500-2500 words
+- Use markdown formatting
+- Include code examples where relevant
+- Match the analyzed writing style
+- Follow the story blueprint structure
+- Make it authentic and engaging
 
-OUTPUT: Complete blog post in markdown format with proper headings, code blocks, and formatting.`;
+Write the complete blog post in markdown format.
+                            </div>
+                        </div>
 
-            promptTemplates['blog_critic_prompt.txt'] = `Review the following blog post draft for authenticity, engagement, technical accuracy, and overall value.
-Blog Draft:
-{blog_draft}
+                        <!-- Input Data -->
+                        <div class="col-md-4">
+                            <h5><i class="fas fa-edit"></i> Combined Data</h5>
+                            <div class="data-display" id="combinedData">
+                                All previous step data will be combined here automatically
+                            </div>
+                            <textarea class="form-control" rows="4" id="additionalGuidance" placeholder="Any additional guidance for the blog writing..."></textarea>
+                        </div>
 
-Your task is to provide a constructive critique, identifying strengths and areas for improvement.
+                        <!-- Final Prompt -->
+                        <div class="col-md-3 column-container">
+                            <h5><i class="fas fa-copy"></i> Final Prompt</h5>
+                            <button class="btn btn-sm btn-outline-primary copy-btn" onclick="copyToClipboard('finalPrompt5')">
+                                <i class="fas fa-copy"></i>
+                            </button>
+                            <div class="prompt-text final-prompt" id="finalPrompt5">
+                                Complete previous steps first, then generate prompt.
+                            </div>
+                            <button class="btn btn-primary mt-2" onclick="generateFinalPrompt(5)">
+                                <i class="fas fa-magic"></i> Generate Prompt
+                            </button>
+                        </div>
 
-Evaluation Criteria:
-1. Authenticity: Does it sound like a real person wrote it? Is it vulnerable and relatable?
-2. Engagement: Does it hook the reader? Maintain interest? Inspire action?
-3. Technical Accuracy: Are the technical details correct and clearly explained?
-4. Value: Does it provide genuine insights or solutions for junior/mid-level developers?
-5. Style Alignment: Does it align with the established style guide (if any was provided)?
+                        <!-- Response -->
+                        <div class="col-md-2">
+                            <h5><i class="fas fa-robot"></i> AI Response</h5>
+                            <textarea class="form-control response-area" id="response5" placeholder="Paste AI response here..."></textarea>
+                            <button class="btn btn-success mt-2" onclick="saveStepData(5)">
+                                <i class="fas fa-save"></i> Save & Next
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
 
-OUTPUT FORMAT as JSON:
-{{
-    "authenticity_score": "1-10",
-    "engagement_score": "1-10",
-    "technical_accuracy_score": "1-10",
-    "strengths": [
-        "strength 1",
-        "strength 2"
-    ],
-    "areas_for_improvement": [
-        {{
-            "section": "introduction/technical_details/conclusion",
-            "issue": "specific problem",
-            "suggestion": "how to improve"
-        }}
-    ],
-    "overall_feedback": "summary of critique"
-}}
+        <!-- Step 6: Blog Review -->
+        <div class="workflow-step" id="step6">
+            <div class="step-header">
+                <h3 class="collapse-toggle" data-bs-toggle="collapse" data-bs-target="#step6Content">
+                    <span class="step-number">6</span>Blog Review
+                    <i class="fas fa-chevron-down float-end"></i>
+                </h3>
+            </div>
+            <div class="collapse" id="step6Content">
+                <div class="step-content">
+                    <div class="row">
+                        <!-- Predefined Prompt -->
+                        <div class="col-md-3">
+                            <h5><i class="fas fa-file-text"></i> Predefined Prompt</h5>
+                            <div class="prompt-text">
+Review and score this blog post comprehensively:
 
-IMPORTANT: Return ONLY the JSON object, no markdown formatting or additional text.`;
+Blog Content: {blog_content}
+Author Profile: {profile_data}
+Style Guide: {style_guide}
 
-            promptTemplates['blog_alchemist_prompt.txt'] = `Revise the following blog post draft based on the provided critique.
-Original Blog Draft:
-{original_blog_draft}
-Critique:
-{critique}
+Evaluate on:
 
-Your task is to integrate the feedback to create an enhanced version of the blog post.
+1. **Content Quality (25 points)**:
+   - Technical accuracy
+   - Depth of insights
+   - Practical value
+   - Unique perspective
 
-Revision Guidelines:
-- Address all "areas_for_improvement" from the critique.
-- Emphasize the identified "strengths".
-- Maintain the original voice and style where effective.
-- Ensure technical accuracy and clarity.
-- The goal is to make the blog post more authentic, engaging, and valuable for junior/mid-level developers.
+2. **Engagement Factor (25 points)**:
+   - Hook effectiveness
+   - Story integration
+   - Readability flow
+   - Call-to-action strength
 
-OUTPUT: Revised complete blog post in markdown format with proper headings, code blocks, and formatting.`;
+3. **Authenticity (25 points)**:
+   - Voice consistency
+   - Personal experience integration
+   - Style guide adherence
+   - Genuine insights
 
-            promptTemplates['blog_community_connector_prompt.txt'] = `Based on the final blog post, suggest relevant online communities, influencers, and additional resources to further engage the audience.
-Blog Post:
-{blog_post_content}
-Topic Details:
-{topic_details}
+4. **Structure & Format (25 points)**:
+   - Logical flow
+   - Markdown formatting
+   - Section organization
+   - Visual appeal
 
-Your task is to curate resources that will help readers connect, learn more, and take action.
+Provide detailed feedback with specific improvement suggestions and an overall score out of 100.
 
-Suggested Categories:
-1. Online Communities: Subreddits, Discord servers, forums related to the blog topic or tech niche.
-2. Relevant Influencers: Twitter/LinkedIn personalities, YouTubers, or bloggers who cover similar topics.
-3. Additional Resources: Links to official documentation, relevant articles, open-source projects, or courses.
-4. Call to Action Suggestions: Specific prompts for readers to engage further (e.g., share their own experience, try a tool, ask a question).
+Return as JSON with scores and detailed feedback.
+                            </div>
+                        </div>
 
-OUTPUT FORMAT as JSON:
-{{
-    "related_communities": [
-        {{
-            "name": "Community Name",
-            "platform": "Reddit/Discord/Forum",
-            "url": "link_to_community",
-            "reason": "why it's relevant"
-        }}
-    ],
-    "relevant_influencers": [
-        {{
-            "name": "Influencer Name",
-            "platform": "Twitter/LinkedIn/YouTube",
-            "handle": "@handle",
-            "reason": "why they are relevant"
-        }}
-    ],
-    "additional_resources": [
-        {{
-            "title": "Resource Title",
-            "type": "documentation/article/project/course",
-            "url": "link_to_resource",
-            "description": "brief summary"
-        }}
-    ],
-    "call_to_action_suggestions": [
-        "Suggest reader shares their experience",
-        "Suggest reader tries the technology discussed"
-    ]
-}}
+                        <!-- Input Data -->
+                        <div class="col-md-4">
+                            <h5><i class="fas fa-edit"></i> Blog Content</h5>
+                            <div class="data-display" id="blogContent">
+                                Blog content from Step 5 will appear here
+                            </div>
+                            <textarea class="form-control" rows="4" id="reviewGuidance" placeholder="Any specific aspects to focus on during review..."></textarea>
+                        </div>
 
-IMPORTANT: Return ONLY the JSON object, no markdown formatting or additional text.`;
+                        <!-- Final Prompt -->
+                        <div class="col-md-3 column-container">
+                            <h5><i class="fas fa-copy"></i> Final Prompt</h5>
+                            <button class="btn btn-sm btn-outline-primary copy-btn" onclick="copyToClipboard('finalPrompt6')">
+                                <i class="fas fa-copy"></i>
+                            </button>
+                            <div class="prompt-text final-prompt" id="finalPrompt6">
+                                Complete previous steps first, then generate prompt.
+                            </div>
+                            <button class="btn btn-primary mt-2" onclick="generateFinalPrompt(6)">
+                                <i class="fas fa-magic"></i> Generate Prompt
+                            </button>
+                        </div>
 
-        }
+                        <!-- Response -->
+                        <div class="col-md-2">
+                            <h5><i class="fas fa-robot"></i> AI Response</h5>
+                            <textarea class="form-control response-area" id="response6" placeholder="Paste AI response here..."></textarea>
+                            <button class="btn btn-success mt-2" onclick="saveStepData(6)">
+                                <i class="fas fa-save"></i> Save & Next
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
 
-        function showStep(stepId) {
-            steps.forEach(id => {
-                document.getElementById(id).classList.add('hidden');
-            });
-            document.getElementById(stepId).classList.remove('hidden');
-        }
+        <!-- Step 7: Blog Enhancement -->
+        <div class="workflow-step" id="step7">
+            <div class="step-header">
+                <h3 class="collapse-toggle" data-bs-toggle="collapse" data-bs-target="#step7Content">
+                    <span class="step-number">7</span>Blog Enhancement
+                    <i class="fas fa-chevron-down float-end"></i>
+                </h3>
+            </div>
+            <div class="collapse" id="step7Content">
+                <div class="step-content">
+                    <div class="alert alert-info" id="enhancementAlert">
+                        <i class="fas fa-info-circle"></i> This step is only needed if the review score is below 85/100
+                    </div>
+                    <div class="row">
+                        <!-- Predefined Prompt -->
+                        <div class="col-md-3">
+                            <h5><i class="fas fa-file-text"></i> Predefined Prompt</h5>
+                            <div class="prompt-text">
+Enhance this blog post based on the detailed review feedback:
 
-        function parseJsonSafely(jsonString, warningElementId) {
-            try {
-                const cleaned = jsonString.replace(/```json\s*|```\s*$/g, '').trim();
-                const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
-                if (jsonMatch) {
-                    const parsed = JSON.parse(jsonMatch[0]);
-                    document.getElementById(warningElementId).textContent = "";
-                    return parsed;
-                }
-                throw new Error("No valid JSON object found in response, or not enclosed in `{}`.");
-            } catch (e) {
-                document.getElementById(warningElementId).textContent = "Error parsing JSON: " + e.message + ". Please ensure the response is a valid JSON object only, ideally without markdown formatting (or remove ````json` / `````).";
-                console.error("JSON parsing error:", e);
-                return null;
-            }
-        }
+Original Blog: {blog_content}
+Review Feedback: {review_feedback}
+Style Guide: {style_guide}
 
-        async function startWorkflow() {
-            workflowState.linkedin_profile = document.getElementById('linkedinProfileData').value.trim();
-            if (!workflowState.linkedin_profile) {
-                alert("Please provide LinkedIn Profile Data to start the workflow.");
-                return;
-            }
-            workflowState.currentStepIndex = 1;
-            renderCurrentStep();
-        }
+Improvement Areas:
+- Address all specific feedback points
+- Strengthen weak sections identified
+- Enhance engagement and authenticity
+- Improve structure and flow
+- Add missing elements
 
-        function renderCurrentStep() {
-            showStep(steps[workflowState.currentStepIndex]);
+Guidelines:
+- Maintain the original voice and style
+- Keep the core story and structure
+- Focus on targeted improvements
+- Ensure technical accuracy
+- Enhance practical value
 
-            switch (workflowState.currentStepIndex) {
-                case 1: // Profile Analyst
-                    document.getElementById('profileAnalystPrompt').value = promptTemplates['blog_profile_analyst_prompt.txt'].replace('{linkedin_profile}', workflowState.linkedin_profile);
-                    break;
-                case 2: // Trend Scout
-                    const expertiseAreas = workflowState.expertise_profile ? JSON.stringify(workflowState.expertise_profile.technical_expertise, null, 2) : "User's LinkedIn profile indicates general software development skills.";
-                    document.getElementById('trendScoutPrompt').value = promptTemplates['blog_trend_scout_prompt.txt'].replace('{expertise_areas}', expertiseAreas);
-                    break;
-                case 3: // Story Architect
-                    const selectedTopic = workflowState.selected_topic ? JSON.stringify(workflowState.selected_topic, null, 2) : "No topic selected.";
-                    const expertiseProfile = workflowState.expertise_profile ? JSON.stringify(workflowState.expertise_profile, null, 2) : "No expertise profile available.";
-                    const storyBank = workflowState.expertise_profile && workflowState.expertise_profile.career_stories ? JSON.stringify(workflowState.expertise_profile.career_stories, null, 2) : "[]";
-                    document.getElementById('storyArchitectPrompt').value = promptTemplates['blog_story_architect_prompt.txt']
-                        .replace('{selected_topic}', selectedTopic)
-                        .replace('{expertise_profile}', expertiseProfile)
-                        .replace('{story_bank}', storyBank);
-                    break;
-                case 4: // Style Decoder (prompt generated on button click)
-                    document.getElementById('styleDecoderPrompt').value = "Enter LinkedIn posts and click 'Generate Prompt' to see the full prompt.";
-                    break;
-                case 5: // Blog Craftsman
-                    const storyBlueprint = workflowState.story_blueprint ? JSON.stringify(workflowState.story_blueprint, null, 2) : "No story blueprint available.";
-                    const styleGuide = workflowState.style_guide ? JSON.stringify(workflowState.style_guide, null, 2) : "No style guide available.";
-                    const topicDetails = workflowState.selected_topic ? JSON.stringify(workflowState.selected_topic, null, 2) : "No topic details available.";
-                    document.getElementById('blogCraftsmanPrompt').value = promptTemplates['blog_craftsman_prompt.txt']
-                        .replace('{story_blueprint}', storyBlueprint)
-                        .replace('{style_guide}', styleGuide)
-                        .replace('{topic_details}', topicDetails);
-                    break;
-                case 6: // Blog Critic
-                    const blogDraft = workflowState.blog_draft || "No blog draft available.";
-                    document.getElementById('blogCriticPrompt').value = promptTemplates['blog_critic_prompt.txt']
-                        .replace('{blog_draft}', blogDraft);
-                    break;
-                case 7: // Blog Alchemist
-                    const originalBlogDraft = workflowState.blog_draft || "No original blog draft available.";
-                    const critique = workflowState.blog_critique ? JSON.stringify(workflowState.blog_critique, null, 2) : "No critique available.";
-                    document.getElementById('blogAlchemistPrompt').value = promptTemplates['blog_alchemist_prompt.txt']
-                        .replace('{original_blog_draft}', originalBlogDraft)
-                        .replace('{critique}', critique);
-                    break;
-                case 8: // Blog Community Connector
-                    const finalBlogPost = workflowState.blog_revised_draft || workflowState.blog_draft || "No blog post available.";
-                    const finalTopicDetails = workflowState.selected_topic ? JSON.stringify(workflowState.selected_topic, null, 2) : "No topic details available.";
-                    document.getElementById('blogCommunityConnectorPrompt').value = promptTemplates['blog_community_connector_prompt.txt']
-                        .replace('{blog_post_content}', finalBlogPost)
-                        .replace('{topic_details}', finalTopicDetails);
-                    break;
-                case 9: // Workflow Complete
-                    document.getElementById('finalBlogOutput').textContent = workflowState.blog_revised_draft || workflowState.blog_draft || "No blog draft generated.";
-                    document.getElementById('communityResourcesOutput').textContent = workflowState.community_resources ? JSON.stringify(workflowState.community_resources, null, 2) : "No community resources generated.";
-                    break;
-            }
-        }
+Provide the complete enhanced blog post in markdown format.
+                            </div>
+                        </div>
 
-        function processProfileAnalystStep() {
-            const response = document.getElementById('profileAnalystResponse').value.trim();
-            const parsed = parseJsonSafely(response, 'profileAnalystWarning');
-            if (!parsed) return;
+                        <!-- Input Data -->
+                        <div class="col-md-4">
+                            <h5><i class="fas fa-edit"></i> Review Feedback</h5>
+                            <div class="data-display" id="reviewFeedback">
+                                Review feedback from Step 6 will appear here
+                            </div>
+                            <textarea class="form-control" rows="4" id="enhancementNotes" placeholder="Additional enhancement notes..."></textarea>
+                        </div>
 
-            workflowState.expertise_profile = parsed;
-            workflowState.currentStepIndex = 2; // Move to Trend Scout
-            renderCurrentStep();
-        }
+                        <!-- Final Prompt -->
+                        <div class="col-md-3 column-container">
+                            <h5><i class="fas fa-copy"></i> Final Prompt</h5>
+                            <button class="btn btn-sm btn-outline-primary copy-btn" onclick="copyToClipboard('finalPrompt7')">
+                                <i class="fas fa-copy"></i>
+                            </button>
+                            <div class="prompt-text final-prompt" id="finalPrompt7">
+                                Enhancement prompt will be generated based on review score.
+                            </div>
+                            <button class="btn btn-primary mt-2" onclick="generateFinalPrompt(7)">
+                                <i class="fas fa-magic"></i> Generate Prompt
+                            </button>
+                        </div>
 
-        function processTrendScoutStep() {
-            const response = document.getElementById('trendScoutResponse').value.trim();
-            const parsed = parseJsonSafely(response, 'trendScoutWarning');
-            if (!parsed) return;
+                        <!-- Response -->
+                        <div class="col-md-2">
+                            <h5><i class="fas fa-robot"></i> AI Response</h5>
+                            <textarea class="form-control response-area" id="response7" placeholder="Paste AI response here..."></textarea>
+                            <button class="btn btn-success mt-2" onclick="saveStepData(7)">
+                                <i class="fas fa-save"></i> Save & Next
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
 
-            workflowState.trending_topics = parsed.trending_topics || [];
-            if (workflowState.trending_topics.length > 0) {
-                // Simple topic selection: pick the first one
-                workflowState.selected_topic = workflowState.trending_topics[0];
-            } else {
-                alert("No trending topics found in the AI response. Please ensure your AI generated 'trending_topics'.");
-                return;
-            }
+        <!-- Step 8: Community Connection -->
+        <div class="workflow-step" id="step8">
+            <div class="step-header">
+                <h3 class="collapse-toggle" data-bs-toggle="collapse" data-bs-target="#step8Content">
+                    <span class="step-number">8</span>Community Connection
+                    <i class="fas fa-chevron-down float-end"></i>
+                </h3>
+            </div>
+            <div class="collapse" id="step8Content">
+                <div class="step-content">
+                    <div class="row">
+                        <!-- Predefined Prompt -->
+                        <div class="col-md-3">
+                            <h5><i class="fas fa-file-text"></i> Predefined Prompt</h5>
+                            <div class="prompt-text">
+Enhance this blog post with community resources and connections:
 
-            workflowState.currentStepIndex = 3; // Move to Story Architect
-            renderCurrentStep();
-        }
+Final Blog Content: {blog_content}
+Topic: {topic}
 
-        function processStoryArchitectStep() {
-            const response = document.getElementById('storyArchitectResponse').value.trim();
-            const parsed = parseJsonSafely(response, 'storyArchitectWarning');
-            if (!parsed) return;
+Add the following sections to the blog:
 
-            workflowState.story_blueprint = parsed;
-            workflowState.currentStepIndex = 4; // Move to Style Decoder
-            renderCurrentStep();
-        }
+1. **Related Resources**:
+   - Documentation links
+   - Tutorial resources
+   - Tool recommendations
+   - Official guides
 
-        function generateStyleDecoderPrompt() {
-            const linkedinPosts = document.getElementById('linkedinPostsData').value.trim();
-            if (!linkedinPosts) {
-                alert("Please provide sample LinkedIn Posts to generate the prompt.");
-                return;
-            }
-            workflowState.linkedin_posts = linkedinPosts.split(/\n\n---POST---\n\n|\n\n---\n\n/g).filter(p => p.trim() !== ''); // Split by common separators
+2. **Community Connections**:
+   - Relevant forums and communities
+   - Notable experts to follow
+   - Discord/Slack communities
+   - Reddit communities
 
-            document.getElementById('styleDecoderPrompt').value = promptTemplates['blog_style_decoder_prompt.txt']
-                .replace('{linkedin_posts}', workflowState.linkedin_posts.join('\n\n---POST---\n\n'));
-        }
+3. **Further Learning**:
+   - Advanced topics to explore
+   - Related skills to develop
+   - Course recommendations
+   - Books and articles
 
-        function processStyleDecoderStep() {
-            const response = document.getElementById('styleDecoderResponse').value.trim();
-            const parsed = parseJsonSafely(response, 'styleDecoderWarning');
-            if (!parsed) return;
+4. **Engagement Opportunities**:
+   - Discussion questions
+   - Project ideas
+   - Contribution opportunities
+   - Events and meetups
 
-            workflowState.style_guide = parsed;
-            workflowState.currentStepIndex = 5; // Move to Blog Craftsman
-            renderCurrentStep();
-        }
+Return the enhanced blog with these sections added naturally.
+                            </div>
+                        </div>
 
-        function processBlogCraftsmanStep() {
-            const response = document.getElementById('blogCraftsmanResponse').value.trim();
-            if (!response) {
-                alert("Please paste the blog post generated by the AI.");
-                return;
-            }
-            workflowState.blog_draft = response;
-            workflowState.currentStepIndex = 6; // Move to Blog Critic
-            renderCurrentStep();
-        }
+                        <!-- Input Data -->
+                        <div class="col-md-4">
+                            <h5><i class="fas fa-edit"></i> Final Blog Content</h5>
+                            <div class="data-display" id="finalBlogContent">
+                                Final blog content will appear here
+                            </div>
+                            <textarea class="form-control" rows="4" id="communityNotes" placeholder="Specific communities or resources to mention..."></textarea>
+                        </div>
 
-        function processBlogCriticStep() {
-            const response = document.getElementById('blogCriticResponse').value.trim();
-            const parsed = parseJsonSafely(response, 'blogCriticWarning');
-            if (!parsed) return;
+                        <!-- Final Prompt -->
+                        <div class="col-md-3 column-container">
+                            <h5><i class="fas fa-copy"></i> Final Prompt</h5>
+                            <button class="btn btn-sm btn-outline-primary copy-btn" onclick="copyToClipboard('finalPrompt8')">
+                                <i class="fas fa-copy"></i>
+                            </button>
+                            <div class="prompt-text final-prompt" id="finalPrompt8">
+                                Complete previous steps first, then generate prompt.
+                            </div>
+                            <button class="btn btn-primary mt-2" onclick="generateFinalPrompt(8)">
+                                <i class="fas fa-magic"></i> Generate Prompt
+                            </button>
+                        </div>
 
-            workflowState.blog_critique = parsed;
-            workflowState.currentStepIndex = 7; // Move to Blog Alchemist
-            renderCurrentStep();
-        }
+                        <!-- Response -->
+                        <div class="col-md-2">
+                            <h5><i class="fas fa-robot"></i> AI Response</h5>
+                            <textarea class="form-control response-area" id="response8" placeholder="Paste AI response here..."></textarea>
+                            <button class="btn btn-success mt-2" onclick="saveStepData(8)">
+                                <i class="fas fa-check"></i> Complete
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
 
-        function processBlogAlchemistStep() {
-            const response = document.getElementById('blogAlchemistResponse').value.trim();
-            if (!response) {
-                alert("Please paste the revised blog post generated by the AI.");
-                return;
-            }
-            workflowState.blog_revised_draft = response;
-            workflowState.currentStepIndex = 8; // Move to Blog Community Connector
-            renderCurrentStep();
-        }
+        <!-- Summary Section -->
+        <div class="workflow-step" id="summary" style="display: none;">
+            <div class="step-header">
+                <h3><i class="fas fa-flag-checkered"></i> Workflow Complete!</h3>
+            </div>
+            <div class="step-content">
+                <div class="row">
+                    <div class="col-12">
+                        <div class="alert alert-success">
+                            <h4><i class="fas fa-trophy"></i> Congratulations!</h4>
+                            <p>Your blog creation workflow is complete. You can now download all your data or start a new workflow.</p>
+                        </div>
+                        <div class="text-center">
+                            <button class="btn btn-primary btn-lg me-3" onclick="downloadWorkflowData()">
+                                <i class="fas fa-download"></i> Download All Data
+                            </button>
+                            <button class="btn btn-outline-secondary btn-lg" onclick="resetWorkflow()">
+                                <i class="fas fa-refresh"></i> Start New Workflow
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
-        function processBlogCommunityConnectorStep() {
-            const response = document.getElementById('blogCommunityConnectorResponse').value.trim();
-            const parsed = parseJsonSafely(response, 'blogCommunityConnectorWarning');
-            if (!parsed) return;
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Workflow data storage
+        let workflowData = {
+            profileData: '',
+            expertiseProfile: null,
+            trendingTopics: null,
+            selectedTopic: null,
+            storyBlueprint: null,
+            styleGuide: null,
+            blogDraft: '',
+            reviewFeedback: null,
+            enhancedBlog: '',
+            finalBlog: '',
+            communityResources: null,
+            currentStep: 1,
+            completedSteps: []
+        };
 
-            workflowState.community_resources = parsed;
-            workflowState.currentStepIndex = 9; // Workflow Complete
-            renderCurrentStep();
-        }
-
-
-        // Initialize the first step and fetch prompts on page load
-        document.addEventListener('DOMContentLoaded', async () => {
-            await fetchPromptTemplates(); // Ensure prompts are loaded before rendering
-            showStep('workflow-start');
+        // Load saved data on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            loadWorkflowData();
+            updateProgress();
+            setupEventListeners();
         });
+
+        function setupEventListeners() {
+            // Step navigation
+            document.querySelectorAll('[data-step]').forEach(link => {
+                link.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const step = parseInt(this.dataset.step);
+                    navigateToStep(step);
+                });
+            });
+
+            // Auto-save inputs
+            document.querySelectorAll('textarea, input, select').forEach(input => {
+                input.addEventListener('change', saveCurrentInputs);
+            });
+        }
+
+        function saveCurrentInputs() {
+            // Save current input values
+            const inputs = {
+                profileData: document.getElementById('profileData')?.value || '',
+                profileUrl: document.getElementById('profileUrl')?.value || '',
+                trendContext: document.getElementById('trendContext')?.value || '',
+                selectedTopic: document.getElementById('selectedTopic')?.value || '',
+                additionalStory: document.getElementById('additionalStory')?.value || '',
+                linkedinPosts: document.getElementById('linkedinPosts')?.value || '',
+                additionalGuidance: document.getElementById('additionalGuidance')?.value || '',
+                reviewGuidance: document.getElementById('reviewGuidance')?.value || '',
+                enhancementNotes: document.getElementById('enhancementNotes')?.value || '',
+                communityNotes: document.getElementById('communityNotes')?.value || ''
+            };
+            
+            Object.assign(workflowData, inputs);
+            localStorage.setItem('blogWorkflowData', JSON.stringify(workflowData));
+        }
+
+        function loadWorkflowData() {
+            const saved = localStorage.getItem('blogWorkflowData');
+            if (saved) {
+                workflowData = { ...workflowData, ...JSON.parse(saved) };
+                
+                // Restore input values
+                Object.keys(workflowData).forEach(key => {
+                    const element = document.getElementById(key);
+                    if (element && workflowData[key]) {
+                        element.value = workflowData[key];
+                    }
+                });
+
+                // Update displays
+                updateDataDisplays();
+                updateTopicSelection();
+            }
+        }
+
+        function generateFinalPrompt(step) {
+            const prompts = {
+                1: generateProfilePrompt,
+                2: generateTrendPrompt,
+                3: generateStoryPrompt,
+                4: generateStylePrompt,
+                5: generateBlogPrompt,
+                6: generateReviewPrompt,
+                7: generateEnhancementPrompt,
+                8: generateCommunityPrompt
+            };
+
+            if (prompts[step]) {
+                prompts[step]();
+            }
+        }
+
+        function generateProfilePrompt() {
+            const profileData = document.getElementById('profileData').value.trim();
+            const profileUrl = document.getElementById('profileUrl').value.trim();
+            const basePrompt = document.querySelector('#step1 .prompt-text').textContent;
+            
+            // Check that either profile data or URL is provided, but not both
+            if (!profileData && !profileUrl) {
+                alert('Please provide either LinkedIn profile data or a LinkedIn URL.');
+                return;
+            }
+            
+            if (profileData && profileUrl) {
+                alert('Please provide either profile data OR LinkedIn URL, not both.');
+                return;
+            }
+            
+            // Use whichever input is provided
+            const profileInput = profileData || profileUrl;
+            const finalPrompt = basePrompt.replace('{profile_input}', profileInput);
+            
+            document.getElementById('finalPrompt1').textContent = finalPrompt;
+        }
+
+        function generateTrendPrompt() {
+            if (!workflowData.expertiseProfile) {
+                alert('Please complete Step 1 first.');
+                return;
+            }
+
+            const basePrompt = document.querySelector('#step2 .prompt-text').textContent;
+            const expertiseAreas = JSON.stringify(workflowData.expertiseProfile.technical_expertise || {});
+            const additionalContext = document.getElementById('trendContext').value;
+            
+            let finalPrompt = basePrompt.replace('{expertise_areas}', expertiseAreas);
+            
+            if (additionalContext.trim()) {
+                finalPrompt += '\n\n=== ADDITIONAL CONTEXT ===\n' + additionalContext;
+            }
+
+            document.getElementById('finalPrompt2').textContent = finalPrompt;
+        }
+
+        function generateStoryPrompt() {
+            if (!workflowData.selectedTopic || !workflowData.expertiseProfile) {
+                alert('Please complete previous steps first.');
+                return;
+            }
+
+            const basePrompt = document.querySelector('#step3 .prompt-text').textContent;
+            const additionalStory = document.getElementById('additionalStory').value;
+            
+            let finalPrompt = basePrompt
+                .replace('{selected_topic}', JSON.stringify(workflowData.selectedTopic))
+                .replace('{expertise_profile}', JSON.stringify(workflowData.expertiseProfile))
+                .replace('{story_bank}', JSON.stringify(workflowData.expertiseProfile.career_stories || []));
+            
+            if (additionalStory.trim()) {
+                finalPrompt += '\n\n=== ADDITIONAL STORY CONTEXT ===\n' + additionalStory;
+            }
+
+            document.getElementById('finalPrompt3').textContent = finalPrompt;
+        }
+
+        function generateStylePrompt() {
+            const linkedinPosts = document.getElementById('linkedinPosts').value;
+            const basePrompt = document.querySelector('#step4 .prompt-text').textContent;
+            
+            if (!linkedinPosts.trim()) {
+                alert('Please enter LinkedIn posts for analysis.');
+                return;
+            }
+
+            const finalPrompt = basePrompt.replace('{linkedin_posts}', linkedinPosts);
+            document.getElementById('finalPrompt4').textContent = finalPrompt;
+        }
+
+        function generateBlogPrompt() {
+            if (!workflowData.storyBlueprint || !workflowData.styleGuide || !workflowData.selectedTopic) {
+                alert('Please complete previous steps first.');
+                return;
+            }
+
+            const basePrompt = document.querySelector('#step5 .prompt-text').textContent;
+            const additionalGuidance = document.getElementById('additionalGuidance').value;
+            
+            let finalPrompt = basePrompt
+                .replace('{story_blueprint}', JSON.stringify(workflowData.storyBlueprint))
+                .replace('{style_guide}', JSON.stringify(workflowData.styleGuide))
+                .replace('{topic_details}', JSON.stringify(workflowData.selectedTopic));
+            
+            if (additionalGuidance.trim()) {
+                finalPrompt += '\n\n=== ADDITIONAL GUIDANCE ===\n' + additionalGuidance;
+            }
+
+            document.getElementById('finalPrompt5').textContent = finalPrompt;
+        }
+
+        function generateReviewPrompt() {
+            if (!workflowData.blogDraft) {
+                alert('Please complete Step 5 first.');
+                return;
+            }
+
+            const basePrompt = document.querySelector('#step6 .prompt-text').textContent;
+            const reviewGuidance = document.getElementById('reviewGuidance').value;
+            
+            let finalPrompt = basePrompt
+                .replace('{blog_content}', workflowData.blogDraft)
+                .replace('{profile_data}', workflowData.profileData)
+                .replace('{style_guide}', JSON.stringify(workflowData.styleGuide || {}));
+            
+            if (reviewGuidance.trim()) {
+                finalPrompt += '\n\n=== REVIEW FOCUS ===\n' + reviewGuidance;
+            }
+
+            document.getElementById('finalPrompt6').textContent = finalPrompt;
+        }
+
+        function generateEnhancementPrompt() {
+            if (!workflowData.reviewFeedback) {
+                alert('Please complete Step 6 first.');
+                return;
+            }
+
+            const score = workflowData.reviewFeedback.overall_score || 0;
+            if (score >= 85) {
+                document.getElementById('finalPrompt7').textContent = 'Enhancement not needed - review score is 85+ points.';
+                return;
+            }
+
+            const basePrompt = document.querySelector('#step7 .prompt-text').textContent;
+            const enhancementNotes = document.getElementById('enhancementNotes').value;
+            
+            let finalPrompt = basePrompt
+                .replace('{blog_content}', workflowData.blogDraft)
+                .replace('{review_feedback}', JSON.stringify(workflowData.reviewFeedback))
+                .replace('{style_guide}', JSON.stringify(workflowData.styleGuide || {}));
+            
+            if (enhancementNotes.trim()) {
+                finalPrompt += '\n\n=== ENHANCEMENT NOTES ===\n' + enhancementNotes;
+            }
+
+            document.getElementById('finalPrompt7').textContent = finalPrompt;
+        }
+
+        function generateCommunityPrompt() {
+            const currentBlog = workflowData.enhancedBlog || workflowData.blogDraft;
+            if (!currentBlog) {
+                alert('Please complete previous steps first.');
+                return;
+            }
+
+            const basePrompt = document.querySelector('#step8 .prompt-text').textContent;
+            const communityNotes = document.getElementById('communityNotes').value;
+            
+            let finalPrompt = basePrompt
+                .replace('{blog_content}', currentBlog)
+                .replace('{topic}', JSON.stringify(workflowData.selectedTopic || {}));
+            
+            if (communityNotes.trim()) {
+                finalPrompt += '\n\n=== COMMUNITY NOTES ===\n' + communityNotes;
+            }
+
+            document.getElementById('finalPrompt8').textContent = finalPrompt;
+        }
+
+        function saveStepData(step) {
+            const responseId = `response${step}`;
+            const response = document.getElementById(responseId).value;
+            
+            if (!response.trim()) {
+                alert('Please enter the AI response before saving.');
+                return;
+            }
+
+            // For step 1, also save the profile input
+            if (step === 1) {
+                const profileData = document.getElementById('profileData').value.trim();
+                const profileUrl = document.getElementById('profileUrl').value.trim();
+                workflowData.profileData = profileData || profileUrl;
+            }
+
+            // Parse and save step-specific data
+            try {
+                switch(step) {
+                    case 1:
+                        workflowData.expertiseProfile = JSON.parse(response);
+                        break;
+                    case 2:
+                        const trendData = JSON.parse(response);
+                        workflowData.trendingTopics = trendData.trending_topics || [];
+                        break;
+                    case 3:
+                        workflowData.storyBlueprint = JSON.parse(response);
+                        break;
+                    case 4:
+                        workflowData.styleGuide = JSON.parse(response);
+                        break;
+                    case 5:
+                        workflowData.blogDraft = response;
+                        break;
+                    case 6:
+                        workflowData.reviewFeedback = JSON.parse(response);
+                        break;
+                    case 7:
+                        workflowData.enhancedBlog = response;
+                        break;
+                    case 8:
+                        workflowData.finalBlog = response;
+                        break;
+                }
+            } catch (e) {
+                if (step === 5 || step === 7 || step === 8) {
+                    // These steps return text, not JSON
+                    switch(step) {
+                        case 5: workflowData.blogDraft = response; break;
+                        case 7: workflowData.enhancedBlog = response; break;
+                        case 8: workflowData.finalBlog = response; break;
+                    }
+                } else {
+                    alert('Please ensure the response is valid JSON format.');
+                    return;
+                }
+            }
+
+            // Mark step as completed
+            if (!workflowData.completedSteps.includes(step)) {
+                workflowData.completedSteps.push(step);
+            }
+
+            // Update current step
+            workflowData.currentStep = Math.max(workflowData.currentStep, step + 1);
+
+            // Save to localStorage
+            saveCurrentInputs();
+
+            // Update UI
+            markStepCompleted(step);
+            updateDataDisplays();
+            updateTopicSelection();
+            updateProgress();
+
+            // Navigate to next step
+            if (step < 8) {
+                navigateToStep(step + 1);
+            } else {
+                showSummary();
+            }
+        }
+
+        function markStepCompleted(step) {
+            const stepElement = document.getElementById(`step${step}`);
+            stepElement.classList.add('step-completed');
+            
+            const navLink = document.querySelector(`[data-step="${step}"]`);
+            navLink.innerHTML += ' <i class="fas fa-check text-success"></i>';
+        }
+
+        function updateDataDisplays() {
+            // Update expertise display
+            if (workflowData.expertiseProfile) {
+                document.getElementById('expertiseDisplay').innerHTML = 
+                    '<strong>Technical Expertise:</strong><br>' + 
+                    JSON.stringify(workflowData.expertiseProfile.technical_expertise || {}, null, 2);
+            }
+
+            // Update story context
+            if (workflowData.expertiseProfile) {
+                document.getElementById('storyContext').innerHTML = 
+                    '<strong>Career Stories:</strong><br>' + 
+                    JSON.stringify(workflowData.expertiseProfile.career_stories || [], null, 2);
+            }
+
+            // Update combined data for blog crafting
+            if (workflowData.storyBlueprint && workflowData.styleGuide) {
+                document.getElementById('combinedData').innerHTML = 
+                    '<strong>Story Blueprint:</strong><br>' + JSON.stringify(workflowData.storyBlueprint, null, 2) +
+                    '<br><br><strong>Style Guide:</strong><br>' + JSON.stringify(workflowData.styleGuide, null, 2);
+            }
+
+            // Update blog content for review
+            if (workflowData.blogDraft) {
+                document.getElementById('blogContent').innerHTML = 
+                    '<strong>Blog Draft:</strong><br>' + workflowData.blogDraft.substring(0, 500) + '...';
+            }
+
+            // Update review feedback
+            if (workflowData.reviewFeedback) {
+                document.getElementById('reviewFeedback').innerHTML = 
+                    '<strong>Review Score:</strong> ' + (workflowData.reviewFeedback.overall_score || 0) + '/100<br>' +
+                    '<strong>Feedback:</strong><br>' + JSON.stringify(workflowData.reviewFeedback, null, 2);
+            }
+
+            // Update final blog content
+            const finalContent = workflowData.enhancedBlog || workflowData.blogDraft;
+            if (finalContent) {
+                document.getElementById('finalBlogContent').innerHTML = 
+                    '<strong>Final Blog:</strong><br>' + finalContent.substring(0, 500) + '...';
+            }
+        }
+
+        function updateTopicSelection() {
+            const select = document.getElementById('selectedTopic');
+            if (workflowData.trendingTopics) {
+                select.innerHTML = '<option value="">Select a topic...</option>';
+                workflowData.trendingTopics.forEach((topic, index) => {
+                    const option = document.createElement('option');
+                    option.value = index;
+                    option.textContent = topic.topic || `Topic ${index + 1}`;
+                    select.appendChild(option);
+                });
+
+                select.addEventListener('change', function() {
+                    if (this.value !== '') {
+                        workflowData.selectedTopic = workflowData.trendingTopics[parseInt(this.value)];
+                        saveCurrentInputs();
+                    }
+                });
+            }
+        }
+
+        function navigateToStep(step) {
+            // Hide all steps
+            document.querySelectorAll('.workflow-step').forEach(el => {
+                el.style.display = 'none';
+            });
+
+            // Show target step
+            document.getElementById(`step${step}`).style.display = 'block';
+
+            // Update navigation
+            document.querySelectorAll('[data-step]').forEach(link => {
+                link.classList.remove('active');
+            });
+            document.querySelector(`[data-step="${step}"]`).classList.add('active');
+
+            // Expand the step content
+            const targetCollapse = document.getElementById(`step${step}Content`);
+            if (targetCollapse) {
+                new bootstrap.Collapse(targetCollapse, { show: true });
+            }
+
+            workflowData.currentStep = step;
+            updateProgress();
+        }
+
+        function updateProgress() {
+            const completed = workflowData.completedSteps.length;
+            const percentage = (completed / 8) * 100;
+            const progressBar = document.getElementById('progressBar');
+            
+            progressBar.style.width = percentage + '%';
+            progressBar.textContent = `Step ${completed} of 8 (${Math.round(percentage)}%)`;
+            
+            if (completed === 8) {
+                progressBar.classList.remove('bg-primary');
+                progressBar.classList.add('bg-success');
+            }
+        }
+
+        function copyToClipboard(elementId) {
+            const element = document.getElementById(elementId);
+            const text = element.textContent;
+            
+            navigator.clipboard.writeText(text).then(() => {
+                // Show temporary success message
+                const btn = element.parentElement.querySelector('.copy-btn');
+                const originalText = btn.innerHTML;
+                btn.innerHTML = '<i class="fas fa-check"></i>';
+                btn.classList.remove('btn-outline-primary');
+                btn.classList.add('btn-success');
+                
+                setTimeout(() => {
+                    btn.innerHTML = originalText;
+                    btn.classList.remove('btn-success');
+                    btn.classList.add('btn-outline-primary');
+                }, 2000);
+            });
+        }
+
+        function showSummary() {
+            document.querySelectorAll('.workflow-step').forEach(el => {
+                el.style.display = 'none';
+            });
+            document.getElementById('summary').style.display = 'block';
+        }
+
+        function downloadWorkflowData() {
+            const dataStr = JSON.stringify(workflowData, null, 2);
+            const dataBlob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(dataBlob);
+            
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = 'blog-workflow-data.json';
+            link.click();
+            
+            URL.revokeObjectURL(url);
+        }
+
+        function resetWorkflow() {
+            if (confirm('Are you sure you want to reset the entire workflow? This will clear all data.')) {
+                localStorage.removeItem('blogWorkflowData');
+                location.reload();
+            }
+        }
     </script>
 </body>
 </html>
