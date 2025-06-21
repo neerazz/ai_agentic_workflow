@@ -19,8 +19,10 @@ from src.ai_agentic_workflow.clients.chatgpt_client import DualModelChatClient
 from src.ai_agentic_workflow.clients.gemini_client import DualModelGeminiClient
 from src.ai_agentic_workflow.clients.claude_client import DualModelClaudeClient
 from src.ai_agentic_workflow.clients.perplexity_client import DualModelPerplexityClient
+from src.ai_agentic_workflow.utils.logging_config import setup_logging
 from src.ai_agentic_workflow.utils.prompt_helper import get_prompt_content
 
+setup_logging(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 
@@ -366,8 +368,12 @@ class BlogCreationWorkflow:
                 f"the LinkedIn profile at {profile_url}."
             )
             llm = self.perplexity_client.get_llm()
+            logger.debug(f"[Perplexity] Requesting profile summary with prompt: {profile_prompt}")
             profile_text = llm.invoke(profile_prompt)  # type: ignore[arg-type]
+            logger.debug(f"[Perplexity] Received profile summary: {profile_text}")
+            logger.debug(f"[Perplexity] Requesting posts with prompt: {posts_prompt}")
             posts_text = llm.invoke(posts_prompt)  # type: ignore[arg-type]
+            logger.debug(f"[Perplexity] Received posts: {posts_text}")
             posts = re.split(r"\n\n+", str(posts_text)) if posts_text else []
             return str(profile_text), posts[:10]
         except Exception as exc:  # pragma: no cover - network issues
@@ -383,15 +389,13 @@ class BlogCreationWorkflow:
     ) -> BlogProject:
         """Run the complete blog creation workflow."""
 
-        profile_text = linkedin_profile_data or ""
+        project = BlogProject(linkedin_profile=linkedin_profile_data or linkedin_profile_url)
 
         if linkedin_profile_url:
             summary, posts = self.fetch_profile_with_perplexity(linkedin_profile_url)
-            if not profile_text:
-                profile_text = summary
             project.linkedin_posts = posts
-
-        project = BlogProject(linkedin_profile=profile_text)
+            logger.debug(f"LinkedIn profile summary: {summary}")
+            logger.debug(f"LinkedIn posts: {posts}")
 
         if debug:
             logging.getLogger().setLevel(logging.DEBUG)
@@ -402,6 +406,7 @@ class BlogCreationWorkflow:
             logger.info("Starting blog creation attempt %s", attempt)
             try:
                 tasks = self._create_tasks(project)
+                logger.debug(f"Created tasks: {[t.description for t in tasks]}")
                 crew = Crew(
                     agents=[
                         self.profile_analyst,
@@ -418,21 +423,30 @@ class BlogCreationWorkflow:
                     verbose=debug,
                 )
 
+                logger.debug("Kicking off CrewAI workflow...")
                 result = crew.kickoff()
                 outputs = result.tasks_output
+                logger.debug(f"CrewAI outputs: {[o.raw for o in outputs]}")
 
                 project.expertise_profile = self._parse_json_output(outputs[0].raw)
+                logger.debug(f"Expertise profile: {project.expertise_profile}")
                 project.trending_topics = self._parse_json_output(outputs[1].raw).get("trending_topics", [])
+                logger.debug(f"Trending topics: {project.trending_topics}")
 
                 if not project.selected_topic and project.trending_topics:
                     project.selected_topic = self.select_best_topic(
                         project.expertise_profile, project.trending_topics
                     )
+                    logger.debug(f"Selected topic: {project.selected_topic}")
 
                 project.story_blueprint = self._parse_json_output(outputs[2].raw)
+                logger.debug(f"Story blueprint: {project.story_blueprint}")
                 project.style_guide = self._parse_json_output(outputs[3].raw)
+                logger.debug(f"Style guide: {project.style_guide}")
                 project.blog_draft = outputs[4].raw
+                logger.debug(f"Blog draft: {project.blog_draft}")
                 project.review_feedback = self._parse_json_output(outputs[5].raw)
+                logger.debug(f"Review feedback: {project.review_feedback}")
 
                 current_score = project.review_feedback.get("overall_score", 0)
                 project.final_score = current_score
@@ -440,12 +454,15 @@ class BlogCreationWorkflow:
                 if current_score < self.REVIEW_THRESHOLD:
                     if len(outputs) > 6:
                         project.enhanced_blog = outputs[6].raw
+                        logger.debug(f"Enhanced blog: {project.enhanced_blog}")
                         project.final_blog = outputs[7].raw
+                        logger.debug(f"Final blog (after enhancement): {project.final_blog}")
                     else:
                         logger.warning("Enhancement expected but not found in outputs")
                         continue
                 else:
                     project.final_blog = outputs[6].raw
+                    logger.debug(f"Final blog: {project.final_blog}")
 
                 if len(outputs) > 0:
                     last_output = outputs[-1].raw
@@ -453,6 +470,7 @@ class BlogCreationWorkflow:
                     if json_match:
                         try:
                             project.community_resources = json.loads(json_match.group())
+                            logger.debug(f"Community resources: {project.community_resources}")
                         except json.JSONDecodeError:  # pragma: no cover - robustness
                             logger.error("Failed to parse community resources JSON")
 
@@ -498,26 +516,8 @@ def run_blog_creation_workflow(
 
 
 if __name__ == "__main__":  # pragma: no cover - manual test
-    sample_profile = """
-    John Doe - Senior Software Engineer
 
-    Experience:
-    - Senior Software Engineer at TechCorp (2021-Present)
-      Working on microservices architecture, React, Node.js
-      Led migration from monolith to microservices
-
-    - Software Engineer at StartupXYZ (2019-2021)
-      Full-stack development with React and Python
-      Built real-time collaboration features
-
-    - Junior Developer at WebAgency (2017-2019)
-      Frontend development with JavaScript
-      Learned React and modern web development
-
-    Skills: React, Node.js, Python, Microservices, AWS, Docker
-    """
-
-    result = run_blog_creation_workflow(linkedin_profile_data=sample_profile, debug=False)
+    result = run_blog_creation_workflow(debug=True, linkedin_profile_url="https://www.linkedin.com/in/neerajkumarsinghb/")
 
     print("\n=== BLOG CREATION RESULTS ===")
     print(f"Selected Topic: {result['selected_topic'].get('topic', 'N/A')}")
