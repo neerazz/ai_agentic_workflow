@@ -1069,22 +1069,44 @@ Return the enhanced blog with these sections added naturally.
         function generateBlogPrompt() {
             console.log('\n📝 Generating blog crafting prompt...');
             
-            // FIRST: Check if selectedTopic is corrupted (string instead of object) and auto-fix
-            if (typeof workflowData.selectedTopic === 'string' && workflowData.trendingTopics) {
-                const topicIndex = parseInt(workflowData.selectedTopic);
-                if (!isNaN(topicIndex) && workflowData.trendingTopics[topicIndex]) {
-                    console.log('🔧 Auto-fixing corrupted selectedTopic from string to object');
-                    workflowData.selectedTopic = workflowData.trendingTopics[topicIndex];
-                    
-                    // Also update the dropdown to match
-                    const select = document.getElementById('selectedTopic');
-                    if (select) {
-                        select.value = topicIndex;
-                        displaySelectedTopicDetails(workflowData.selectedTopic);
+            // FIRST: Check if selectedTopic is corrupted and try auto-fix
+            console.log('🔍 Pre-validation check - selectedTopic type:', typeof workflowData.selectedTopic);
+            console.log('🔍 Pre-validation check - selectedTopic value:', workflowData.selectedTopic);
+            
+            if ((!workflowData.selectedTopic || typeof workflowData.selectedTopic !== 'object') && workflowData.trendingTopics) {
+                console.log('🔧 Attempting auto-fix for selectedTopic...');
+                
+                // Try to get from dropdown
+                const select = document.getElementById('selectedTopic');
+                const dropdownValue = select ? select.value : '';
+                
+                if (dropdownValue !== '' && workflowData.trendingTopics[dropdownValue]) {
+                    console.log('🔧 Auto-fixing from dropdown value:', dropdownValue);
+                    workflowData.selectedTopic = workflowData.trendingTopics[dropdownValue];
+                    displaySelectedTopicDetails(workflowData.selectedTopic);
+                    localStorage.setItem('blogWorkflowData', JSON.stringify(workflowData));
+                    console.log('✅ Auto-fixed selectedTopic:', workflowData.selectedTopic);
+                } else if (workflowData.selectedTopicIndex && workflowData.trendingTopics[workflowData.selectedTopicIndex]) {
+                    console.log('🔧 Auto-fixing from saved index:', workflowData.selectedTopicIndex);
+                    workflowData.selectedTopic = workflowData.trendingTopics[workflowData.selectedTopicIndex];
+                    if (select) select.value = workflowData.selectedTopicIndex;
+                    displaySelectedTopicDetails(workflowData.selectedTopic);
+                    localStorage.setItem('blogWorkflowData', JSON.stringify(workflowData));
+                    console.log('✅ Auto-fixed selectedTopic:', workflowData.selectedTopic);
+                } else {
+                    // Try to find Platform Engineering topic
+                    const platformTopic = workflowData.trendingTopics.find(t => 
+                        t.topic && t.topic.includes('Platform Engineering')
+                    );
+                    if (platformTopic) {
+                        console.log('🔧 Auto-selecting Platform Engineering topic');
+                        workflowData.selectedTopic = platformTopic;
+                        const topicIndex = workflowData.trendingTopics.indexOf(platformTopic);
+                        if (select) select.value = topicIndex;
+                        displaySelectedTopicDetails(platformTopic);
+                        localStorage.setItem('blogWorkflowData', JSON.stringify(workflowData));
+                        console.log('✅ Auto-selected Platform Engineering:', platformTopic);
                     }
-                    
-                    console.log('✅ Fixed selectedTopic:', workflowData.selectedTopic);
-                    saveCurrentInputs();
                 }
             }
             
@@ -1134,7 +1156,7 @@ Return the enhanced blog with these sections added naturally.
                 console.log('  - Available trending topics:', workflowData.trendingTopics);
                 console.log('  - Dropdown value:', document.getElementById('selectedTopic')?.value);
                 
-                alert('Please go to Step 3 and select a topic from the dropdown first.\n\nThe topic selection appears to be corrupted. Try selecting the topic again from the dropdown.');
+                alert('❌ Topic selection is corrupted or missing.\n\n🔧 Try clicking the "Fix Topic" button, or go to Step 3 and re-select your topic from the dropdown.');
                 return;
             }
 
@@ -1516,13 +1538,39 @@ Return the enhanced blog with these sections added naturally.
                 workflowData.selectedTopic = selectedTopic;
                 
                 displaySelectedTopicDetails(selectedTopic);
-                saveCurrentInputs();
+                
+                // Save manually with explicit preservation
+                console.log('💾 Saving with explicit selectedTopic preservation...');
+                const currentTopic = workflowData.selectedTopic;
+                
+                // Save other inputs but protect selectedTopic
+                const inputs = {
+                    profileData: document.getElementById('profileData')?.value || '',
+                    profileUrl: document.getElementById('profileUrl')?.value || '',
+                    trendContext: document.getElementById('trendContext')?.value || '',
+                    additionalStory: document.getElementById('additionalStory')?.value || '',
+                    linkedinPosts: document.getElementById('linkedinPosts')?.value || '',
+                    additionalGuidance: document.getElementById('additionalGuidance')?.value || '',
+                    reviewGuidance: document.getElementById('reviewGuidance')?.value || '',
+                    enhancementNotes: document.getElementById('enhancementNotes')?.value || '',
+                    communityNotes: document.getElementById('communityNotes')?.value || '',
+                    selectedTopicIndex: selectedIndex
+                };
+                
+                Object.assign(workflowData, inputs);
+                
+                // Force restore selectedTopic
+                workflowData.selectedTopic = currentTopic;
+                
+                localStorage.setItem('blogWorkflowData', JSON.stringify(workflowData));
+                
                 console.log('💾 Saved selected topic to workflow data');
                 
                 // Verify it was saved correctly
                 console.log('🔍 Verification - workflowData.selectedTopic:', workflowData.selectedTopic);
                 console.log('🔍 Verification - typeof selectedTopic:', typeof workflowData.selectedTopic);
                 console.log('🔍 Verification - selectedTopic exists:', !!workflowData.selectedTopic);
+                console.log('🔍 Verification - has topic property:', !!(workflowData.selectedTopic && workflowData.selectedTopic.topic));
             } else {
                 console.log('❌ No topic selected (empty value)');
                 // Hide topic details if no topic selected
@@ -1729,36 +1777,89 @@ Return the enhanced blog with these sections added naturally.
         function fixSelectedTopic() {
             console.log('\n🔧 Manual fix for selectedTopic...');
             
-            if (typeof workflowData.selectedTopic === 'string' && workflowData.trendingTopics) {
-                const topicIndex = parseInt(workflowData.selectedTopic);
-                console.log('🔍 Found string selectedTopic:', workflowData.selectedTopic, 'parsing as index:', topicIndex);
-                
-                if (!isNaN(topicIndex) && workflowData.trendingTopics[topicIndex]) {
-                    const fixedTopic = workflowData.trendingTopics[topicIndex];
-                    workflowData.selectedTopic = fixedTopic;
+            // Check if selectedTopic is corrupted (string or empty)
+            if (typeof workflowData.selectedTopic === 'string') {
+                if (workflowData.selectedTopic === '') {
+                    console.log('❌ selectedTopic is empty string, checking dropdown');
                     
-                    // Update the dropdown
+                    // Try to get from dropdown
                     const select = document.getElementById('selectedTopic');
-                    if (select) {
-                        select.value = topicIndex;
-                        displaySelectedTopicDetails(fixedTopic);
+                    const dropdownValue = select ? select.value : '';
+                    
+                    if (dropdownValue && workflowData.trendingTopics) {
+                        const topicIndex = parseInt(dropdownValue);
+                        if (!isNaN(topicIndex) && workflowData.trendingTopics[topicIndex]) {
+                            const fixedTopic = workflowData.trendingTopics[topicIndex];
+                            workflowData.selectedTopic = fixedTopic;
+                            displaySelectedTopicDetails(fixedTopic);
+                            
+                            // Save the fix
+                            localStorage.setItem('blogWorkflowData', JSON.stringify(workflowData));
+                            
+                            console.log('✅ Fixed selectedTopic from dropdown:', fixedTopic);
+                            alert(`✅ Fixed! Selected topic is now: "${fixedTopic.topic}"`);
+                            return;
+                        }
                     }
                     
-                    // Save the fix
-                    localStorage.setItem('blogWorkflowData', JSON.stringify(workflowData));
+                    // If no dropdown value, try to restore "Platform Engineering" from trending topics
+                    if (workflowData.trendingTopics) {
+                        const platformTopic = workflowData.trendingTopics.find(t => 
+                            t.topic && t.topic.includes('Platform Engineering')
+                        );
+                        if (platformTopic) {
+                            workflowData.selectedTopic = platformTopic;
+                            
+                            // Update dropdown
+                            const topicIndex = workflowData.trendingTopics.indexOf(platformTopic);
+                            if (select) {
+                                select.value = topicIndex;
+                                displaySelectedTopicDetails(platformTopic);
+                            }
+                            
+                            // Save the fix
+                            localStorage.setItem('blogWorkflowData', JSON.stringify(workflowData));
+                            
+                            console.log('✅ Auto-selected Platform Engineering topic:', platformTopic);
+                            alert(`✅ Fixed! Auto-selected: "${platformTopic.topic}"`);
+                            return;
+                        }
+                    }
                     
-                    console.log('✅ Fixed selectedTopic:', fixedTopic);
-                    alert(`✅ Fixed! Selected topic is now: "${fixedTopic.topic}"`);
+                    alert('❌ Cannot fix: Please manually select a topic from the dropdown first');
+                    
                 } else {
-                    console.log('❌ Cannot parse topic index or invalid index');
-                    alert('❌ Cannot fix: Invalid topic index');
+                    // Try to parse as index
+                    const topicIndex = parseInt(workflowData.selectedTopic);
+                    console.log('🔍 Found string selectedTopic:', workflowData.selectedTopic, 'parsing as index:', topicIndex);
+                    
+                    if (!isNaN(topicIndex) && workflowData.trendingTopics && workflowData.trendingTopics[topicIndex]) {
+                        const fixedTopic = workflowData.trendingTopics[topicIndex];
+                        workflowData.selectedTopic = fixedTopic;
+                        
+                        // Update the dropdown
+                        const select = document.getElementById('selectedTopic');
+                        if (select) {
+                            select.value = topicIndex;
+                            displaySelectedTopicDetails(fixedTopic);
+                        }
+                        
+                        // Save the fix
+                        localStorage.setItem('blogWorkflowData', JSON.stringify(workflowData));
+                        
+                        console.log('✅ Fixed selectedTopic:', fixedTopic);
+                        alert(`✅ Fixed! Selected topic is now: "${fixedTopic.topic}"`);
+                    } else {
+                        console.log('❌ Cannot parse topic index or invalid index');
+                        alert('❌ Cannot fix: Invalid topic index');
+                    }
                 }
-            } else if (typeof workflowData.selectedTopic === 'object') {
-                console.log('✅ selectedTopic is already an object');
-                alert('✅ selectedTopic is already correct (object type)');
+            } else if (typeof workflowData.selectedTopic === 'object' && workflowData.selectedTopic.topic) {
+                console.log('✅ selectedTopic is already a valid object');
+                alert(`✅ selectedTopic is already correct: "${workflowData.selectedTopic.topic}"`);
             } else {
-                console.log('❌ No trending topics available for fix');
-                alert('❌ Cannot fix: No trending topics available');
+                console.log('❌ selectedTopic is in unknown state:', workflowData.selectedTopic);
+                alert('❌ Cannot fix: selectedTopic is in unknown state');
             }
         }
 
