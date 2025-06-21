@@ -1,6 +1,6 @@
 import logging
 
-from langchain_community.chat_models import ChatOpenAI
+from langchain_community.chat_models import ChatPerplexity
 
 from src.ai_agentic_workflow.utils.env_reader import get_env_variable
 
@@ -18,9 +18,9 @@ class DualModelPerplexityClient:
             "Initializing (reasoning_model=%s, concept_model=%s, default_model=%s)",
             reasoning_model, concept_model, default_model
         )
-        api_key = get_env_variable("GROQ_API_KEY")
-        self.reasoning_llm = ChatOpenAI(openai_api_key=api_key, model_name=reasoning_model)
-        self.concept_llm = ChatOpenAI(openai_api_key=api_key, model_name=concept_model)
+        api_key = get_env_variable("PERPLEXITY_API_KEY")
+        self.reasoning_llm = ChatPerplexity(pplx_api_key=api_key, model=reasoning_model)
+        self.concept_llm = ChatPerplexity(pplx_api_key=api_key, model=concept_model)
         self.default_model = default_model
 
     def call_reasoning(self, prompt: str) -> str:
