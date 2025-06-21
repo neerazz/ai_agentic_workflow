@@ -326,7 +326,6 @@ class BlogCreationWorkflow:
                     tasks=tasks,
                     process=Process.sequential,
                     verbose=debug,
-                    memory=True,
                 )
 
                 logger.debug("Kicking off CrewAI workflow...")
