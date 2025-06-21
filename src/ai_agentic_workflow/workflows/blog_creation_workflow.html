@@ -560,6 +560,13 @@ Write the complete blog post in markdown format.
                                 All previous step data will be combined here automatically
                             </div>
                             <textarea class="form-control" rows="4" id="additionalGuidance" placeholder="Any additional guidance for the blog writing..."></textarea>
+                            
+                            <!-- Debug Information -->
+                            <div class="mt-2">
+                                <button class="btn btn-sm btn-outline-info" onclick="showDebugInfo(5)">
+                                    <i class="fas fa-bug"></i> Debug Data
+                                </button>
+                            </div>
                         </div>
 
                         <!-- Final Prompt -->
@@ -889,9 +896,24 @@ Return the enhanced blog with these sections added naturally.
 
         // Load saved data on page load
         document.addEventListener('DOMContentLoaded', function() {
+            console.log('\n🚀 Blog Workflow Interface Loading...');
+            console.log('⏰ Timestamp:', new Date().toISOString());
+            
             loadWorkflowData();
             updateProgress();
             setupEventListeners();
+            
+            console.log('✅ Interface loaded successfully');
+            console.log('📊 Initial workflow state:', {
+                completedSteps: workflowData.completedSteps,
+                currentStep: workflowData.currentStep,
+                hasExpertiseProfile: !!workflowData.expertiseProfile,
+                hasTrendingTopics: !!workflowData.trendingTopics,
+                trendingTopicsCount: workflowData.trendingTopics ? workflowData.trendingTopics.length : 0,
+                hasSelectedTopic: !!workflowData.selectedTopic,
+                hasStoryBlueprint: !!workflowData.storyBlueprint,
+                hasStyleGuide: !!workflowData.styleGuide
+            });
         });
 
         function setupEventListeners() {
@@ -1042,24 +1064,102 @@ Return the enhanced blog with these sections added naturally.
         }
 
         function generateBlogPrompt() {
-            if (!workflowData.storyBlueprint || !workflowData.styleGuide || !workflowData.selectedTopic) {
-                alert('Please complete previous steps first.');
+            console.log('\n📝 Generating blog crafting prompt...');
+            
+            // Log current workflow data state
+            console.log('📊 Current workflow data state:');
+            console.log('  - Story Blueprint exists:', !!workflowData.storyBlueprint);
+            console.log('  - Story Blueprint keys:', workflowData.storyBlueprint ? Object.keys(workflowData.storyBlueprint) : 'N/A');
+            console.log('  - Style Guide exists:', !!workflowData.styleGuide);
+            console.log('  - Style Guide keys:', workflowData.styleGuide ? Object.keys(workflowData.styleGuide) : 'N/A');
+            console.log('  - Selected Topic exists:', !!workflowData.selectedTopic);
+            console.log('  - Selected Topic type:', typeof workflowData.selectedTopic);
+            console.log('  - Selected Topic data:', workflowData.selectedTopic);
+            console.log('  - Trending Topics exists:', !!workflowData.trendingTopics);
+            console.log('  - Trending Topics count:', workflowData.trendingTopics ? workflowData.trendingTopics.length : 0);
+            console.log('  - Completed Steps:', workflowData.completedSteps);
+
+            // More flexible validation - check if we have the essential data
+            const hasStoryBlueprint = workflowData.storyBlueprint && 
+                (workflowData.storyBlueprint.story_blueprint || workflowData.storyBlueprint.hook_opening || workflowData.storyBlueprint);
+            const hasStyleGuide = workflowData.styleGuide && 
+                (workflowData.styleGuide.voice_and_tone || workflowData.styleGuide.author_profile || workflowData.styleGuide);
+            const hasSelectedTopic = workflowData.selectedTopic && 
+                typeof workflowData.selectedTopic === 'object' && 
+                workflowData.selectedTopic.topic;
+
+            console.log('🔍 Validation results:');
+            console.log('  - Has Story Blueprint:', hasStoryBlueprint);
+            console.log('  - Has Style Guide:', hasStyleGuide);
+            console.log('  - Has Selected Topic:', hasSelectedTopic);
+
+            if (!hasStoryBlueprint) {
+                console.log('❌ Missing Story Blueprint - showing alert');
+                alert('Please complete Step 3 (Story Architecture) first.');
                 return;
             }
+            
+            if (!hasStyleGuide) {
+                console.log('❌ Missing Style Guide - showing alert');
+                alert('Please complete Step 4 (Style Analysis) first.');
+                return;
+            }
+            
+            if (!hasSelectedTopic) {
+                console.log('❌ Missing Selected Topic - showing alert');
+                console.log('  - Current selectedTopic value:', workflowData.selectedTopic);
+                console.log('  - Current selectedTopic type:', typeof workflowData.selectedTopic);
+                console.log('  - Available trending topics:', workflowData.trendingTopics);
+                console.log('  - Dropdown value:', document.getElementById('selectedTopic')?.value);
+                
+                // Try to auto-fix if dropdown has a value but selectedTopic is wrong
+                const dropdownValue = document.getElementById('selectedTopic')?.value;
+                if (dropdownValue && workflowData.trendingTopics && workflowData.trendingTopics[dropdownValue]) {
+                    console.log('🔧 Attempting to auto-fix selectedTopic from dropdown');
+                    workflowData.selectedTopic = workflowData.trendingTopics[dropdownValue];
+                    saveCurrentInputs();
+                    console.log('✅ Auto-fixed selectedTopic:', workflowData.selectedTopic);
+                    // Retry validation
+                    if (workflowData.selectedTopic && typeof workflowData.selectedTopic === 'object' && workflowData.selectedTopic.topic) {
+                        console.log('✅ Auto-fix successful, continuing with prompt generation');
+                    } else {
+                        alert('Please go to Step 3 and select a topic from the dropdown first.');
+                        return;
+                    }
+                } else {
+                    alert('Please complete Step 2 (Trend Research) and select a topic first.\n\nTip: Make sure you select a topic from the dropdown in Step 3.');
+                    return;
+                }
+            }
+
+            console.log('✅ All validations passed, generating prompt...');
 
             const basePrompt = document.querySelector('#step5 .prompt-text').textContent;
             const additionalGuidance = document.getElementById('additionalGuidance').value;
             
+            // Handle nested story blueprint structure
+            const storyBlueprintData = workflowData.storyBlueprint.story_blueprint || workflowData.storyBlueprint;
+            const styleGuideData = workflowData.styleGuide;
+            const topicData = workflowData.selectedTopic;
+            
+            console.log('🔧 Preparing data for prompt replacement...');
+            console.log('  - Story Blueprint data keys:', Object.keys(storyBlueprintData));
+            console.log('  - Style Guide data keys:', Object.keys(styleGuideData));
+            console.log('  - Topic data keys:', Object.keys(topicData));
+            
             let finalPrompt = basePrompt
-                .replace('{story_blueprint}', JSON.stringify(workflowData.storyBlueprint))
-                .replace('{style_guide}', JSON.stringify(workflowData.styleGuide))
-                .replace('{topic_details}', JSON.stringify(workflowData.selectedTopic));
+                .replace('{story_blueprint}', JSON.stringify(storyBlueprintData, null, 2))
+                .replace('{style_guide}', JSON.stringify(styleGuideData, null, 2))
+                .replace('{topic_details}', JSON.stringify(topicData, null, 2));
             
             if (additionalGuidance.trim()) {
                 finalPrompt += '\n\n=== ADDITIONAL GUIDANCE ===\n' + additionalGuidance;
+                console.log('📝 Added additional guidance to prompt');
             }
 
             document.getElementById('finalPrompt5').textContent = finalPrompt;
+            console.log('✅ Blog crafting prompt generated successfully');
+            console.log('📏 Final prompt length:', finalPrompt.length);
         }
 
         function generateReviewPrompt() {
@@ -1132,10 +1232,14 @@ Return the enhanced blog with these sections added naturally.
         }
 
         function parseJsonResponse(response) {
+            console.log('🔍 Parsing JSON response:', response.substring(0, 200) + '...');
             try {
                 // First, try direct JSON parsing
-                return JSON.parse(response);
+                const result = JSON.parse(response);
+                console.log('✅ Direct JSON parse successful:', result);
+                return result;
             } catch (e) {
+                console.log('❌ Direct JSON parse failed, trying cleanup:', e.message);
                 try {
                     // Clean up common formatting issues
                     let cleaned = response.trim();
@@ -1147,13 +1251,17 @@ Return the enhanced blog with these sections added naturally.
                     // Try to extract JSON object from the text
                     const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
                     if (jsonMatch) {
-                        return JSON.parse(jsonMatch[0]);
+                        const result = JSON.parse(jsonMatch[0]);
+                        console.log('✅ JSON extraction successful:', result);
+                        return result;
                     }
                     
                     // If no JSON object found, try the cleaned text
-                    return JSON.parse(cleaned);
+                    const result = JSON.parse(cleaned);
+                    console.log('✅ Cleaned JSON parse successful:', result);
+                    return result;
                 } catch (e2) {
-                    console.error('JSON parsing error:', e2);
+                    console.error('❌ All JSON parsing attempts failed:', e2);
                     console.log('Raw response:', response);
                     throw new Error('Invalid JSON format');
                 }
@@ -1161,6 +1269,7 @@ Return the enhanced blog with these sections added naturally.
         }
 
         function saveStepData(step) {
+            console.log(`\n🚀 Starting to save data for Step ${step}`);
             const responseId = `response${step}`;
             const response = document.getElementById(responseId).value;
             
@@ -1169,11 +1278,14 @@ Return the enhanced blog with these sections added naturally.
                 return;
             }
 
+            console.log(`📝 Raw response for Step ${step}:`, response.substring(0, 300) + '...');
+
             // For step 1, also save the profile input
             if (step === 1) {
                 const profileData = document.getElementById('profileData').value.trim();
                 const profileUrl = document.getElementById('profileUrl').value.trim();
                 workflowData.profileData = profileData || profileUrl;
+                console.log('👤 Saved profile data:', workflowData.profileData);
             }
 
             // Parse and save step-specific data
@@ -1181,31 +1293,42 @@ Return the enhanced blog with these sections added naturally.
                 switch(step) {
                     case 1:
                         workflowData.expertiseProfile = parseJsonResponse(response);
+                        console.log('💼 Saved expertise profile:', workflowData.expertiseProfile);
                         break;
                     case 2:
                         const trendData = parseJsonResponse(response);
+                        console.log('📊 Parsed trend data:', trendData);
                         workflowData.trendingTopics = trendData.trending_topics || [];
+                        console.log('📈 Saved trending topics:', workflowData.trendingTopics);
+                        console.log('📈 Number of trending topics:', workflowData.trendingTopics.length);
                         break;
                     case 3:
                         workflowData.storyBlueprint = parseJsonResponse(response);
+                        console.log('📖 Saved story blueprint:', workflowData.storyBlueprint);
                         break;
                     case 4:
                         workflowData.styleGuide = parseJsonResponse(response);
+                        console.log('🎨 Saved style guide:', workflowData.styleGuide);
                         break;
                     case 5:
                         workflowData.blogDraft = response;
+                        console.log('📝 Saved blog draft (length):', response.length);
                         break;
                     case 6:
                         workflowData.reviewFeedback = parseJsonResponse(response);
+                        console.log('🔍 Saved review feedback:', workflowData.reviewFeedback);
                         break;
                     case 7:
                         workflowData.enhancedBlog = response;
+                        console.log('✨ Saved enhanced blog (length):', response.length);
                         break;
                     case 8:
                         workflowData.finalBlog = response;
+                        console.log('🏁 Saved final blog (length):', response.length);
                         break;
                 }
             } catch (e) {
+                console.error(`❌ Error parsing Step ${step} data:`, e);
                 if (step === 5 || step === 7 || step === 8) {
                     // These steps return text, not JSON
                     switch(step) {
@@ -1213,6 +1336,7 @@ Return the enhanced blog with these sections added naturally.
                         case 7: workflowData.enhancedBlog = response; break;
                         case 8: workflowData.finalBlog = response; break;
                     }
+                    console.log(`✅ Saved Step ${step} as text instead`);
                 } else {
                     alert(`JSON parsing failed for step ${step}. Please ensure the response is valid JSON format.\n\nError: ${e.message}\n\nTip: Make sure there are no extra characters before or after the JSON object.`);
                     return;
@@ -1222,10 +1346,12 @@ Return the enhanced blog with these sections added naturally.
             // Mark step as completed
             if (!workflowData.completedSteps.includes(step)) {
                 workflowData.completedSteps.push(step);
+                console.log(`✅ Marked step ${step} as completed`);
             }
 
             // Update current step
             workflowData.currentStep = Math.max(workflowData.currentStep, step + 1);
+            console.log(`📈 Updated current step to: ${workflowData.currentStep}`);
 
             // Save to localStorage
             saveCurrentInputs();
@@ -1234,6 +1360,17 @@ Return the enhanced blog with these sections added naturally.
             markStepCompleted(step);
             updateDataDisplays();
             updateProgress();
+
+            console.log(`🎉 Step ${step} completed successfully!`);
+            console.log('📊 Current workflow state:', {
+                completedSteps: workflowData.completedSteps,
+                currentStep: workflowData.currentStep,
+                hasExpertiseProfile: !!workflowData.expertiseProfile,
+                hasTrendingTopics: !!workflowData.trendingTopics,
+                hasSelectedTopic: !!workflowData.selectedTopic,
+                hasStoryBlueprint: !!workflowData.storyBlueprint,
+                hasStyleGuide: !!workflowData.styleGuide
+            });
 
             // Navigate to next step
             if (step < 8) {
@@ -1268,9 +1405,12 @@ Return the enhanced blog with these sections added naturally.
 
             // Update combined data for blog crafting
             if (workflowData.storyBlueprint && workflowData.styleGuide) {
+                const storyBlueprintData = workflowData.storyBlueprint.story_blueprint || workflowData.storyBlueprint;
+                const styleGuideData = workflowData.styleGuide;
+                
                 document.getElementById('combinedData').innerHTML = 
-                    '<strong>Story Blueprint:</strong><br>' + JSON.stringify(workflowData.storyBlueprint, null, 2) +
-                    '<br><br><strong>Style Guide:</strong><br>' + JSON.stringify(workflowData.styleGuide, null, 2);
+                    '<strong>Story Blueprint:</strong><br>' + JSON.stringify(storyBlueprintData, null, 2).substring(0, 500) + '...' +
+                    '<br><br><strong>Style Guide:</strong><br>' + JSON.stringify(styleGuideData, null, 2).substring(0, 500) + '...';
             }
 
             // Update blog content for review
@@ -1298,15 +1438,21 @@ Return the enhanced blog with these sections added naturally.
         }
 
         function updateTopicSelection() {
+            console.log('\n🎯 Updating topic selection...');
+            console.log('📊 Trending topics data:', workflowData.trendingTopics);
+            
             const select = document.getElementById('selectedTopic');
-            if (workflowData.trendingTopics) {
+            if (workflowData.trendingTopics && workflowData.trendingTopics.length > 0) {
+                console.log(`📋 Found ${workflowData.trendingTopics.length} trending topics`);
                 select.innerHTML = '<option value="">Select a topic...</option>';
                 workflowData.trendingTopics.forEach((topic, index) => {
                     const option = document.createElement('option');
                     option.value = index;
                     // Use the actual topic name, fallback to a default if not available
-                    option.textContent = topic.topic || topic.title || topic.name || `Topic ${index + 1}`;
+                    const topicName = topic.topic || topic.title || topic.name || `Topic ${index + 1}`;
+                    option.textContent = topicName;
                     select.appendChild(option);
+                    console.log(`➕ Added topic ${index}: ${topicName}`);
                 });
 
                 // Remove any existing event listeners to avoid duplicates
@@ -1314,29 +1460,69 @@ Return the enhanced blog with these sections added naturally.
                 // Add event listener for topic selection changes
                 select.addEventListener('change', handleTopicChange);
                 
-                // If there's already a selected topic, update the display
-                if (workflowData.selectedTopic) {
-                    const selectedIndex = workflowData.trendingTopics.findIndex(t => 
-                        JSON.stringify(t) === JSON.stringify(workflowData.selectedTopic)
-                    );
+                // If there's already a selected topic, try to find and select it
+                if (workflowData.selectedTopic && typeof workflowData.selectedTopic === 'object') {
+                    console.log('🔍 Checking for existing selected topic:', workflowData.selectedTopic);
+                    
+                    // Try to find the topic by matching the topic name or other unique properties
+                    const selectedIndex = workflowData.trendingTopics.findIndex(t => {
+                        // Match by topic name (most reliable)
+                        if (t.topic && workflowData.selectedTopic.topic) {
+                            return t.topic === workflowData.selectedTopic.topic;
+                        }
+                        // Fallback to full object comparison
+                        return JSON.stringify(t) === JSON.stringify(workflowData.selectedTopic);
+                    });
+                    
+                    console.log('📍 Found selected topic at index:', selectedIndex);
                     if (selectedIndex !== -1) {
                         select.value = selectedIndex;
                         displaySelectedTopicDetails(workflowData.selectedTopic);
+                        console.log('✅ Restored topic selection from saved data');
+                    } else {
+                        console.log('⚠️ Could not find matching topic in trending topics list');
+                    }
+                } else if (workflowData.selectedTopicIndex) {
+                    // Fallback: restore from saved index
+                    console.log('📍 Restoring topic from saved index:', workflowData.selectedTopicIndex);
+                    select.value = workflowData.selectedTopicIndex;
+                    if (workflowData.trendingTopics[workflowData.selectedTopicIndex]) {
+                        workflowData.selectedTopic = workflowData.trendingTopics[workflowData.selectedTopicIndex];
+                        displaySelectedTopicDetails(workflowData.selectedTopic);
                     }
                 }
+            } else {
+                console.log('❌ No trending topics data available');
             }
         }
 
         function handleTopicChange() {
+            console.log('\n🔄 Topic selection changed');
             const select = document.getElementById('selectedTopic');
+            console.log('📝 Selected value:', select.value);
+            
             if (select.value !== '') {
-                const selectedTopic = workflowData.trendingTopics[parseInt(select.value)];
+                const selectedIndex = parseInt(select.value);
+                const selectedTopic = workflowData.trendingTopics[selectedIndex];
+                console.log('✅ Selected topic data:', selectedTopic);
+                
+                // Store the actual topic object, not the index
                 workflowData.selectedTopic = selectedTopic;
+                
                 displaySelectedTopicDetails(selectedTopic);
                 saveCurrentInputs();
+                console.log('💾 Saved selected topic to workflow data');
+                
+                // Verify it was saved correctly
+                console.log('🔍 Verification - workflowData.selectedTopic:', workflowData.selectedTopic);
+                console.log('🔍 Verification - typeof selectedTopic:', typeof workflowData.selectedTopic);
+                console.log('🔍 Verification - selectedTopic exists:', !!workflowData.selectedTopic);
             } else {
+                console.log('❌ No topic selected (empty value)');
                 // Hide topic details if no topic selected
                 document.getElementById('selectedTopicDetails').style.display = 'none';
+                workflowData.selectedTopic = null;
+                saveCurrentInputs();
             }
         }
 
@@ -1445,6 +1631,93 @@ Return the enhanced blog with these sections added naturally.
             link.click();
             
             URL.revokeObjectURL(url);
+        }
+
+        function showDebugInfo(step) {
+            console.log(`\n🐛 ===== DEBUG INFO FOR STEP ${step} =====`);
+            
+            const debugData = {
+                currentStep: workflowData.currentStep,
+                completedSteps: workflowData.completedSteps,
+                
+                // Step 1 data
+                expertiseProfile: {
+                    exists: !!workflowData.expertiseProfile,
+                    keys: workflowData.expertiseProfile ? Object.keys(workflowData.expertiseProfile) : null,
+                    data: workflowData.expertiseProfile
+                },
+                
+                // Step 2 data
+                trendingTopics: {
+                    exists: !!workflowData.trendingTopics,
+                    count: workflowData.trendingTopics ? workflowData.trendingTopics.length : 0,
+                    data: workflowData.trendingTopics
+                },
+                
+                // Selected topic
+                selectedTopic: {
+                    exists: !!workflowData.selectedTopic,
+                    type: typeof workflowData.selectedTopic,
+                    isObject: workflowData.selectedTopic && typeof workflowData.selectedTopic === 'object',
+                    topicName: workflowData.selectedTopic && workflowData.selectedTopic.topic ? workflowData.selectedTopic.topic : 'N/A',
+                    data: workflowData.selectedTopic
+                },
+                
+                // Step 3 data
+                storyBlueprint: {
+                    exists: !!workflowData.storyBlueprint,
+                    keys: workflowData.storyBlueprint ? Object.keys(workflowData.storyBlueprint) : null,
+                    hasNestedBlueprint: !!(workflowData.storyBlueprint && workflowData.storyBlueprint.story_blueprint),
+                    data: workflowData.storyBlueprint
+                },
+                
+                // Step 4 data
+                styleGuide: {
+                    exists: !!workflowData.styleGuide,
+                    keys: workflowData.styleGuide ? Object.keys(workflowData.styleGuide) : null,
+                    data: workflowData.styleGuide
+                },
+                
+                // Current UI state
+                uiState: {
+                    selectedTopicDropdownValue: document.getElementById('selectedTopic')?.value || '',
+                    selectedTopicDropdownText: document.getElementById('selectedTopic')?.selectedOptions[0]?.text || ''
+                },
+                
+                // Full workflow data
+                fullWorkflowData: workflowData
+            };
+            
+            // Print to console for easy copying
+            console.log('📊 Debug Data Object:', debugData);
+            console.log('📋 Full Workflow Data (for copying):', JSON.stringify(workflowData, null, 2));
+            
+            // Also show in alert for quick overview
+            let debugInfo = `=== DEBUG INFO FOR STEP ${step} ===\n\n`;
+            
+            debugInfo += `Story Blueprint exists: ${debugData.storyBlueprint.exists}\n`;
+            debugInfo += `Story Blueprint structure: ${debugData.storyBlueprint.keys ? debugData.storyBlueprint.keys.join(', ') : 'N/A'}\n`;
+            debugInfo += `Has nested blueprint: ${debugData.storyBlueprint.hasNestedBlueprint}\n\n`;
+            
+            debugInfo += `Style Guide exists: ${debugData.styleGuide.exists}\n`;
+            debugInfo += `Style Guide structure: ${debugData.styleGuide.keys ? debugData.styleGuide.keys.join(', ') : 'N/A'}\n\n`;
+            
+            debugInfo += `Selected Topic exists: ${debugData.selectedTopic.exists}\n`;
+            debugInfo += `Selected Topic type: ${debugData.selectedTopic.type}\n`;
+            debugInfo += `Selected Topic is object: ${debugData.selectedTopic.isObject}\n`;
+            debugInfo += `Selected Topic name: ${debugData.selectedTopic.topicName}\n\n`;
+            
+            debugInfo += `Trending Topics count: ${debugData.trendingTopics.count}\n\n`;
+            
+            debugInfo += `Completed Steps: ${debugData.completedSteps.join(', ')}\n`;
+            debugInfo += `Current Step: ${debugData.currentStep}\n\n`;
+            
+            debugInfo += `UI Dropdown Value: ${debugData.uiState.selectedTopicDropdownValue}\n`;
+            debugInfo += `UI Dropdown Text: ${debugData.uiState.selectedTopicDropdownText}\n\n`;
+            
+            debugInfo += `CHECK CONSOLE for full data objects that you can copy/paste!`;
+            
+            alert(debugInfo);
         }
 
         function resetWorkflow() {
