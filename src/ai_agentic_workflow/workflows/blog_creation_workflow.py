@@ -19,7 +19,7 @@ from src.ai_agentic_workflow.agents.blog_critic_agent import get_blog_critic_age
 from src.ai_agentic_workflow.agents.community_connector_agent import get_community_connector_agent, \
     get_community_connector_prompt
 # Import the refactored agents and their prompt functions
-from src.ai_agentic_workflow.agents.profile_analyst_agent import get_profile_analyst_agent, get_profile_analyst_prompt
+from src.ai_agentic_workflow.agents.profile_analyst_agent import get_profile_analyst_agent, get_profile_analyst_prompt, user_profile_analysis
 from src.ai_agentic_workflow.agents.story_architect_agent import get_story_architect_agent, get_story_architect_prompt
 from src.ai_agentic_workflow.agents.style_decoder_agent import get_style_decoder_agent, get_style_decoder_prompt
 from src.ai_agentic_workflow.agents.trend_scout_agent import get_trend_scout_agent, get_trend_scout_prompt
@@ -287,7 +287,7 @@ class BlogCreationWorkflow:
 
         project = BlogProject(linkedin_profile=linkedin_profile_data or linkedin_profile_url)
 
-        if linkedin_profile_url:
+        if linkedin_profile_data is None and linkedin_profile_url:
             summary, posts = self.fetch_profile_with_perplexity(linkedin_profile_url)
             project.linkedin_posts = posts
             logger.debug(f"LinkedIn profile summary: {summary}")
@@ -438,7 +438,7 @@ def run_blog_creation_workflow(
     """Convenience function to run the blog creation workflow."""
     workflow = BlogCreationWorkflow()
     project = workflow.run(
-        linkedin_profile_data=linkedin_profile_data,
+        linkedin_profile_data=user_profile_analysis,
         linkedin_profile_url=linkedin_profile_url,
         debug=debug,
     )
