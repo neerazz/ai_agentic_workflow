@@ -1,0 +1,835 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced AI Blog Workflow</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f0f2f5;
+            font-family: 'Inter', sans-serif;
+        }
+        .workflow-step {
+            border: 1px solid #dee2e6;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            background: #ffffff;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            transition: all 0.3s ease-in-out;
+        }
+        .step-header {
+            background: #f8f9fa;
+            padding: 15px 20px;
+            border-bottom: 1px solid #dee2e6;
+            border-radius: 12px 12px 0 0;
+            cursor: pointer;
+            user-select: none;
+            display: flex;
+            align-items: center;
+        }
+        .step-header:hover {
+            background: #e9ecef;
+        }
+        .step-content {
+            padding: 25px;
+        }
+        .prompt-text, .data-display, .response-area {
+            background: #f8f9fa;
+            border: 1px solid #ced4da;
+            border-radius: 8px;
+            padding: 15px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            white-space: pre-wrap;
+            min-height: 200px;
+            overflow-y: auto;
+            transition: border-color 0.2s;
+        }
+        .prompt-text:focus, .response-area:focus {
+            border-color: #007bff;
+            outline: none;
+        }
+        .final-prompt {
+            background: #e7f3ff;
+            border: 1px solid #007bff;
+        }
+        .response-area {
+            background: #f0f9ff;
+            border: 1px solid #0ea5e9;
+        }
+        .data-display {
+            background: #f0fdf4;
+            border: 1px solid #22c55e;
+            max-height: 300px;
+        }
+        .step-number {
+            background: #007bff;
+            color: white;
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 15px;
+            font-weight: bold;
+            font-size: 1rem;
+        }
+        .copy-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            z-index: 10;
+        }
+        .column-container {
+            position: relative;
+        }
+        .step-completed .step-header {
+            background: #e6ffed !important;
+            border-color: #b7e9c7 !important;
+        }
+        .nav-pills .nav-link {
+            color: #007bff;
+            border-radius: 20px;
+            margin: 0 5px;
+            font-weight: 500;
+        }
+        .nav-pills .nav-link.active {
+            background-color: #007bff;
+            color: white;
+        }
+        .progress {
+            height: 25px;
+            margin-bottom: 20px;
+            font-size: 1rem;
+            border-radius: 20px;
+        }
+        .btn {
+            border-radius: 8px;
+            font-weight: 500;
+        }
+        .ai-recommendation {
+            background-color: #eef2f7;
+            border-left: 5px solid #6c757d;
+            padding: 15px;
+            margin-bottom: 25px;
+            border-radius: 0 8px 8px 0;
+            font-size: 0.9rem;
+        }
+        .ai-recommendation h5 {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #343a40;
+            margin-bottom: 5px;
+        }
+        .ai-recommendation strong {
+            color: #0d6efd;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid py-4">
+        <div class="row">
+            <div class="col-12">
+                <h1 class="text-center mb-4">
+                    <i class="fas fa-robot"></i> Enhanced AI Blog Creation Workflow
+                </h1>
+                
+                <!-- Progress Bar -->
+                <div class="progress">
+                    <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%" id="progressBar">Step 0 of 8</div>
+                </div>
+
+                <!-- Step Navigation -->
+                <ul class="nav nav-pills mb-4 justify-content-center" id="stepNavigation">
+                    <li class="nav-item"><a class="nav-link active" href="#step1" data-step="1">1. Topic & Persona</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#step2" data-step="2">2. Draft</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#step3" data-step="3">3. Code Injection</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#step4" data-step="4">4. Review</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#step5" data-step="5">5. Enhancement</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#step6" data-step="6">6. Image Prompts</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#step7" data-step="7">7. LinkedIn Post</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#step8" data-step="8">8. Final Output</a></li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Step 1: Topic & Persona -->
+        <div class="workflow-step" id="step1">
+            <div class="step-header" data-bs-toggle="collapse" data-bs-target="#step1Content">
+                <h3><span class="step-number">1</span>Topic & Persona Definition <i class="fas fa-chevron-down float-end mt-1"></i></h3>
+            </div>
+            <div class="collapse show" id="step1Content">
+                <div class="step-content">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <h5><i class="fas fa-lightbulb"></i> Blog Topic</h5>
+                            <p>Provide a short description of the blog post you want to create.</p>
+                            <textarea id="blogTopic" class="form-control" rows="5" placeholder="e.g., 'An introduction to using the Saga pattern for managing distributed transactions in a microservices architecture.'"></textarea>
+                        </div>
+                        <div class="col-md-5">
+                            <h5><i class="fas fa-user"></i> Author Persona</h5>
+                            <p>Define the persona of the author. Edit the JSON below.</p>
+                            <textarea class="form-control" id="personaDisplay" rows="15"></textarea>
+                        </div>
+                        <div class="col-md-3 d-flex flex-column justify-content-center align-items-center">
+                             <h5>Confirm & Proceed</h5>
+                             <p class="text-center">Click below to lock in the topic and persona, then move to the drafting stage.</p>
+                             <button class="btn btn-success btn-lg" onclick="saveStepData(1)">
+                                 <i class="fas fa-check"></i> Confirm & Next
+                             </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Step 2: Research & Draft -->
+        <div class="workflow-step" id="step2">
+            <div class="step-header" data-bs-toggle="collapse" data-bs-target="#step2Content">
+                <h3><span class="step-number">2</span>Research & First Draft <i class="fas fa-chevron-down float-end mt-1"></i></h3>
+            </div>
+            <div class="collapse" id="step2Content">
+                <div class="step-content">
+                    <div class="ai-recommendation">
+                        <h5><i class="fas fa-lightbulb"></i> AI Service Recommendation</h5>
+                        <p>For this two-part task, use the best tool for each job:</p>
+                        <ul>
+                            <li><strong>Research:</strong> Use <strong>Perplexity AI</strong>. Its core strength is deep, cited research, which is perfect for gathering accurate foundational knowledge for the blog.</li>
+                            <li><strong>Drafting & Persona Adoption:</strong> Use <strong>Claude 3 Opus</strong>. Its large context window and superior narrative ability make it ideal for crafting a long, coherent, and persona-driven article from research notes.</li>
+                        </ul>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-4">
+                            <h5><i class="fas fa-file-alt"></i> Editable Prompt</h5>
+                            <textarea class="form-control prompt-text" id="promptText2" rows="15">Based on the topic below, perform detailed research and write a comprehensive, 1000-word blog post. The post should be technical, informative, and well-structured.
+
+After writing the blog, rewrite it in the voice of the provided author persona.
+
+**Topic:**
+{blog_topic}
+
+**Author Persona:**
+{author_persona}
+
+Return only the final, persona-adjusted blog post in markdown format.
+</textarea>
+                        </div>
+                        <div class="col-md-4 column-container">
+                            <h5><i class="fas fa-paper-plane"></i> Final Prompt</h5>
+                            <button class="btn btn-sm btn-outline-primary copy-btn" onclick="copyToClipboard('finalPrompt2')"><i class="fas fa-copy"></i></button>
+                            <div class="prompt-text final-prompt" id="finalPrompt2">Click "Generate Prompt" to see it here.</div>
+                            <button class="btn btn-primary mt-2 w-100" onclick="generateFinalPrompt(2)"><i class="fas fa-magic"></i> Generate Prompt</button>
+                        </div>
+                        <div class="col-md-4">
+                            <h5><i class="fas fa-robot"></i> AI Response (Persona-Adjusted Blog)</h5>
+                            <textarea class="form-control response-area" id="response2" placeholder="Paste the generated blog post here..."></textarea>
+                            <button class="btn btn-success mt-2 w-100" onclick="saveStepData(2)"><i class="fas fa-save"></i> Save Blog & Next</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Step 3: Code Injection -->
+        <div class="workflow-step" id="step3">
+            <div class="step-header" data-bs-toggle="collapse" data-bs-target="#step3Content">
+                <h3><span class="step-number">3</span>Code Injection <i class="fas fa-chevron-down float-end mt-1"></i></h3>
+            </div>
+            <div class="collapse" id="step3Content">
+                <div class="step-content">
+                     <div class="ai-recommendation">
+                        <h5><i class="fas fa-lightbulb"></i> AI Service Recommendation</h5>
+                        <p>
+                            Use <strong>ChatGPT-4o</strong> for this task. It excels at understanding the context of existing text and generating syntactically correct, relevant, and substantial code snippets. Its strong reasoning capabilities ensure the code logically fits the narrative.
+                        </p>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-4">
+                            <h5><i class="fas fa-file-alt"></i> Editable Prompt</h5>
+                            <textarea class="form-control prompt-text" id="promptText3" rows="15">Analyze the following blog post. Your task is to inject relevant, practical, and correct code snippets wherever possible to make the article significantly more technical and hands-on.
+
+The code should be substantial and illustrate the concepts being discussed. Add at least 4-6 meaningful code blocks.
+
+**Blog Post to Enhance:**
+{blog_draft}
+
+Return the complete, updated blog post in markdown format with the new code snippets included.
+</textarea>
+                        </div>
+                        <div class="col-md-4 column-container">
+                            <h5><i class="fas fa-paper-plane"></i> Final Prompt</h5>
+                            <button class="btn btn-sm btn-outline-primary copy-btn" onclick="copyToClipboard('finalPrompt3')"><i class="fas fa-copy"></i></button>
+                            <div class="prompt-text final-prompt" id="finalPrompt3">Click "Generate Prompt" to see it here.</div>
+                            <button class="btn btn-primary mt-2 w-100" onclick="generateFinalPrompt(3)"><i class="fas fa-magic"></i> Generate Prompt</button>
+                        </div>
+                        <div class="col-md-4">
+                            <h5><i class="fas fa-robot"></i> AI Response (Code-Heavy Blog)</h5>
+                            <textarea class="form-control response-area" id="response3" placeholder="Paste the code-injected blog post here..."></textarea>
+                            <button class="btn btn-success mt-2 w-100" onclick="saveStepData(3)"><i class="fas fa-save"></i> Save Code-Heavy Blog & Next</button>
+                        </div>
+                    </div>
+                     <div class="mt-3">
+                        <h5><i class="fas fa-book-open"></i> Current Blog Draft</h5>
+                        <div class="data-display" id="blogDraftForCodeInjection">Blog draft from Step 2 will appear here.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Step 4: Review -->
+        <div class="workflow-step" id="step4">
+            <div class="step-header" data-bs-toggle="collapse" data-bs-target="#step4Content">
+                <h3><span class="step-number">4</span>Quality & Persona Review <i class="fas fa-chevron-down float-end mt-1"></i></h3>
+            </div>
+            <div class="collapse" id="step4Content">
+                <div class="step-content">
+                    <div class="ai-recommendation">
+                        <h5><i class="fas fa-lightbulb"></i> AI Service Recommendation</h5>
+                        <p>
+                           Use <strong>Claude 3 Opus</strong>. Its massive context window allows it to analyze the entire blog post, persona, and complex instructions simultaneously. It provides nuanced, detailed feedback, making it perfect for the role of a meticulous editor, and it's highly reliable at generating structured JSON.
+                        </p>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-4">
+                            <h5><i class="fas fa-file-alt"></i> Editable Prompt</h5>
+                            <textarea class="form-control prompt-text" id="promptText4" rows="15">Act as a meticulous technical editor. Review the following blog post and provide a detailed assessment.
+
+**Author Persona:**
+{author_persona}
+
+**Blog to Review:**
+{code_heavy_blog}
+
+Provide a score and feedback for each of the following categories:
+1.  **Blog Correctness:** Is the information accurate and technically sound?
+2.  **Code Correctness:** Are the code snippets syntactically correct, practical, and relevant?
+3.  **Persona Check:** Does the writing style match the author's persona?
+
+Return a JSON object with your review:
+{
+  "blog_correctness": { "score": 0-100, "feedback": "..." },
+  "code_correctness": { "score": 0-100, "feedback": "..." },
+  "persona_check": { "score": 0-100, "feedback": "..." },
+  "overall_score": 0-100,
+  "final_summary": "A brief summary of your findings."
+}
+</textarea>
+                        </div>
+                        <div class="col-md-4 column-container">
+                            <h5><i class="fas fa-paper-plane"></i> Final Prompt</h5>
+                            <button class="btn btn-sm btn-outline-primary copy-btn" onclick="copyToClipboard('finalPrompt4')"><i class="fas fa-copy"></i></button>
+                            <div class="prompt-text final-prompt" id="finalPrompt4">Click "Generate Prompt" to see it here.</div>
+                            <button class="btn btn-primary mt-2 w-100" onclick="generateFinalPrompt(4)"><i class="fas fa-magic"></i> Generate Prompt</button>
+                        </div>
+                        <div class="col-md-4">
+                            <h5><i class="fas fa-robot"></i> AI Response (Review)</h5>
+                            <textarea class="form-control response-area" id="response4" placeholder="Paste the JSON review object here..."></textarea>
+                            <button class="btn btn-success mt-2 w-100" onclick="saveStepData(4)"><i class="fas fa-save"></i> Save Review & Next</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Step 5: Blog Enhancement -->
+        <div class="workflow-step" id="step5">
+            <div class="step-header" data-bs-toggle="collapse" data-bs-target="#step5Content">
+                <h3><span class="step-number">5</span>Blog Enhancement <i class="fas fa-chevron-down float-end mt-1"></i></h3>
+            </div>
+            <div class="collapse" id="step5Content">
+                <div class="step-content">
+                    <div class="ai-recommendation">
+                        <h5><i class="fas fa-lightbulb"></i> AI Service Recommendation</h5>
+                        <p>
+                           Use <strong>Claude 3 Opus</strong> again. Its ability to handle long, detailed context (the original blog + the extensive review feedback) is unmatched. It will do the best job of incorporating nuanced changes while maintaining the author's voice and the blog's overall flow.
+                        </p>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-4">
+                            <h5><i class="fas fa-file-alt"></i> Editable Prompt</h5>
+                            <textarea class="form-control prompt-text" id="promptText5" rows="15">Based on the detailed review feedback, rewrite and enhance the blog post to address all the points raised. Improve the content, fix any errors in the code, and refine the tone.
+
+**Review Feedback:**
+{review_feedback}
+
+**Original Blog:**
+{code_heavy_blog}
+
+Return the full, enhanced markdown of the final blog post.
+</textarea>
+                        </div>
+                        <div class="col-md-4 column-container">
+                            <h5><i class="fas fa-paper-plane"></i> Final Prompt</h5>
+                            <button class="btn btn-sm btn-outline-primary copy-btn" onclick="copyToClipboard('finalPrompt5')"><i class="fas fa-copy"></i></button>
+                            <div class="prompt-text final-prompt" id="finalPrompt5">Click "Generate Prompt" to see it here.</div>
+                            <button class="btn btn-primary mt-2 w-100" onclick="generateFinalPrompt(5)"><i class="fas fa-magic"></i> Generate Prompt</button>
+                        </div>
+                        <div class="col-md-4">
+                            <h5><i class="fas fa-robot"></i> AI Response (Enhanced Blog)</h5>
+                            <textarea class="form-control response-area" id="response5" placeholder="Paste the final, enhanced blog here..."></textarea>
+                            <button class="btn btn-success mt-2 w-100" onclick="saveStepData(5)"><i class="fas fa-save"></i> Save Final Blog & Next</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Step 6: Image Prompts -->
+        <div class="workflow-step" id="step6">
+             <div class="step-header" data-bs-toggle="collapse" data-bs-target="#step6Content">
+                <h3><span class="step-number">6</span>Image Prompt Generation <i class="fas fa-chevron-down float-end mt-1"></i></h3>
+            </div>
+            <div class="collapse" id="step6Content">
+                <div class="step-content">
+                    <div class="ai-recommendation">
+                        <h5><i class="fas fa-lightbulb"></i> AI Service Recommendation</h5>
+                        <p>
+                            Use <strong>ChatGPT-4o</strong>. It is highly creative and excels at translating abstract or technical concepts into vivid, descriptive visual prompts suitable for advanced image generation models like Midjourney or DALL-E 3.
+                        </p>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-4">
+                             <h5><i class="fas fa-file-alt"></i> Editable Prompt</h5>
+                             <textarea class="form-control prompt-text" id="promptText6" rows="15">Analyze the final blog post and generate 3-4 distinct, highly engaging image prompts for a text-to-image AI.
+
+For each prompt, describe a concept that is visually striking, relevant to the blog's content, and has viral attributes (e.g., dynamic, unique, emotionally resonant).
+
+**Final Blog Post:**
+{final_blog}
+
+Return a JSON array of prompts:
+[
+  { "prompt_name": "Hero Image", "prompt_text": "A detailed description for the main blog image..." },
+  { "prompt_name": "Technical Diagram", "prompt_text": "A detailed description for a diagram..." },
+  { "prompt_name": "Conceptual Image", "prompt_text": "A detailed description for an abstract concept..." }
+]
+</textarea>
+                        </div>
+                         <div class="col-md-4 column-container">
+                            <h5><i class="fas fa-paper-plane"></i> Final Prompt</h5>
+                            <button class="btn btn-sm btn-outline-primary copy-btn" onclick="copyToClipboard('finalPrompt6')"><i class="fas fa-copy"></i></button>
+                            <div class="prompt-text final-prompt" id="finalPrompt6">Click "Generate Prompt" to see it here.</div>
+                            <button class="btn btn-primary mt-2 w-100" onclick="generateFinalPrompt(6)"><i class="fas fa-magic"></i> Generate Prompt</button>
+                        </div>
+                        <div class="col-md-4">
+                            <h5><i class="fas fa-robot"></i> AI Response (Image Prompts)</h5>
+                            <textarea class="form-control response-area" id="response6" placeholder="Paste the JSON array of image prompts here..."></textarea>
+                            <button class="btn btn-success mt-2 w-100" onclick="saveStepData(6)"><i class="fas fa-save"></i> Save Prompts & Next</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Step 7: LinkedIn Post -->
+        <div class="workflow-step" id="step7">
+             <div class="step-header" data-bs-toggle="collapse" data-bs-target="#step7Content">
+                <h3><span class="step-number">7</span>LinkedIn Post Generation <i class="fas fa-chevron-down float-end mt-1"></i></h3>
+            </div>
+            <div class="collapse" id="step7Content">
+                <div class="step-content">
+                    <div class="ai-recommendation">
+                        <h5><i class="fas fa-lightbulb"></i> AI Service Recommendation</h5>
+                        <p>
+                           Use <strong>Gemini Advanced</strong>. It is excellent for generating concise, engaging, and creative short-form content. Its ability to brainstorm multiple hooks and its potential connection to trending social media styles make it a great choice for crafting a promotional post that gets attention.
+                        </p>
+                    </div>
+                     <div class="row">
+                        <div class="col-md-4">
+                             <h5><i class="fas fa-file-alt"></i> Editable Prompt</h5>
+                             <textarea class="form-control prompt-text" id="promptText7" rows="15">Create a LinkedIn post to promote the following blog article. The post should be written from the perspective of the author's persona.
+
+It needs a strong hook, a summary of the blog's value, and relevant, popular hashtags.
+
+**Author Persona:**
+{author_persona}
+
+**Final Blog Post:**
+{final_blog}
+
+Return a JSON object:
+{
+  "post_text": "The full text for the LinkedIn post...",
+  "hashtags": ["#example", "#tech", "..."]
+}
+</textarea>
+                        </div>
+                         <div class="col-md-4 column-container">
+                            <h5><i class="fas fa-paper-plane"></i> Final Prompt</h5>
+                            <button class="btn btn-sm btn-outline-primary copy-btn" onclick="copyToClipboard('finalPrompt7')"><i class="fas fa-copy"></i></button>
+                            <div class="prompt-text final-prompt" id="finalPrompt7">Click "Generate Prompt" to see it here.</div>
+                            <button class="btn btn-primary mt-2 w-100" onclick="generateFinalPrompt(7)"><i class="fas fa-magic"></i> Generate Prompt</button>
+                        </div>
+                        <div class="col-md-4">
+                            <h5><i class="fas fa-robot"></i> AI Response (LinkedIn Content)</h5>
+                            <textarea class="form-control response-area" id="response7" placeholder="Paste the JSON for the LinkedIn post here..."></textarea>
+                            <button class="btn btn-success mt-2 w-100" onclick="saveStepData(7)"><i class="fas fa-save"></i> Save Post & Next</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Step 8: Final Output -->
+        <div class="workflow-step" id="step8">
+            <div class="step-header" data-bs-toggle="collapse" data-bs-target="#step8Content">
+                <h3><span class="step-number">8</span>Final Output & Download <i class="fas fa-chevron-down float-end mt-1"></i></h3>
+            </div>
+            <div class="collapse" id="step8Content">
+                <div class="step-content">
+                    <div class="alert alert-success text-center">
+                        <h4><i class="fas fa-trophy"></i> Congratulations! Your assets are ready.</h4>
+                        <p>The workflow is complete. Review your final assets below and download the entire package.</p>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h5>Final Blog Post (Markdown)</h5>
+                            <div class="data-display" id="finalBlogDisplay"></div>
+                        </div>
+                        <div class="col-md-6">
+                            <h5>Image Prompts</h5>
+                            <div class="data-display" id="imagePromptsDisplay"></div>
+                            <h5 class="mt-3">LinkedIn Post</h5>
+                            <div class="data-display" id="linkedinPostDisplay"></div>
+                        </div>
+                    </div>
+                     <div class="text-center mt-4">
+                        <button class="btn btn-primary btn-lg me-3" onclick="downloadWorkflowData()"><i class="fas fa-download"></i> Download All Data</button>
+                        <button class="btn btn-outline-secondary btn-lg" onclick="resetWorkflow()"><i class="fas fa-sync-alt"></i> Start New Workflow</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // --- Hardcoded Persona Data ---
+        const hardcodedPersona = {
+            "name": "Neeraj Kumar Singh Beshane",
+            "role": "Staff Software Engineer / Principal Architect",
+            "specialties": [
+                "Enterprise Java & Microservices",
+                "Cloud Architecture & Kubernetes",
+                "DevSecOps & CI/CD",
+                "System Architecture & Design"
+            ],
+            "tone": "Technical, detailed, and results-oriented. Explains complex systems with real-world examples and data-driven outcomes. Confident and focuses on practical application and business impact.",
+            "writing_style": {
+                "sentence_structure": "A mix of direct, clear statements and in-depth explanations of technical concepts.",
+                "vocabulary": "Utilizes precise industry terminology (e.g., 'Saga pattern', 'GitOps', 'vulnerability detection') but frames it within practical project narratives.",
+                "formatting": "Relies on markdown for code blocks, lists, and bolding to structure information logically.",
+                "perspective": "Shares lessons learned from real-world challenges, emphasizing 'struggle-to-success' narratives and measurable outcomes."
+            },
+            "career_stories": [{
+                "type": "origin",
+                "summary": "Started in customer service and broke into tech as a mainframe programmer at TCS, demonstrating grit and a user-centric perspective from the start.",
+                "technologies": ["Mainframe", "REXX"],
+                "lesson": "A non-traditional path into tech can provide unique, valuable skills like empathy and communication."
+            }, {
+                "type": "growth",
+                "summary": "Advanced at TCS from a support role to leading modules, including a year-long assignment in Uruguay, broadening his global experience.",
+                "technologies": ["Java", "JSP", "Spring", "Hibernate"],
+                "lesson": "Global experience and taking initiative on process improvements are key drivers of leadership growth."
+            }, {
+                "type": "transformation",
+                "summary": "At American Express, re-architected a legacy monolith into high-performing microservices, cutting code by 60% and improving response times by 66%.",
+                "technologies": ["Java", "Spring Boot", "Microservices"],
+                "lesson": "Tackling legacy modernization head-on can deliver massive performance and business wins."
+            }, {
+                "type": "expansion",
+                "summary": "At JPMorgan, integrated disparate systems to reduce support calls by 30% and became a security champion, rolling out enterprise-wide security frameworks.",
+                "technologies": ["CI/CD", "Terraform", "OAuth2", "Saga Pattern"],
+                "lesson": "Growth comes from expanding scope beyond code to include security, infrastructure, and direct business impact."
+            }, {
+                "type": "innovation",
+                "summary": "At Wayfair, developed a real-time vulnerability detection system for over 20,000 applications, improving incident response by 40%.",
+                "technologies": ["Spring Cloud Data Flow", "Kafka", "Python", "Kubernetes", "BigQuery"],
+                "lesson": "Applying big data and streaming principles to security can solve DevSecOps challenges at enormous scale."
+            }, {
+                "type": "delivery",
+                "summary": "Led the architecture and delivery of a new crypto trading platform from scratch at CoinFlip in an intense 4-month sprint, handling 12,000+ TPS.",
+                "technologies": ["AWS EKS", "Kubernetes", "Microservices", "ArgoCD", "Gatling"],
+                "lesson": "Under extreme pressure, rapid delivery is possible with smart architecture, rigorous performance testing, and modern DevOps practices."
+            }, {
+                "type": "futurist",
+                "summary": "Currently at Meta Reality Labs, leading efforts to revolutionize CI/CD systems for AR/VR development by exploring the use of LLMs for automation.",
+                "technologies": ["CI/CD", "AOSP", "LLMs", "Schema-driven Frameworks"],
+                "lesson": "The next frontier of engineering efficiency lies in applying AI to the development process itself."
+            }]
+        };
+
+        // --- Workflow State Management ---
+        let workflowData = {};
+
+        // --- Core Functions ---
+        document.addEventListener('DOMContentLoaded', function() {
+            loadWorkflowData();
+            updateProgress();
+            setupEventListeners();
+            navigateToStep(workflowData.currentStep || 1);
+            document.getElementById('personaDisplay').value = JSON.stringify(hardcodedPersona, null, 2);
+        });
+
+        function setupEventListeners() {
+            document.querySelectorAll('[data-step]').forEach(link => {
+                link.addEventListener('click', e => {
+                    e.preventDefault();
+                    navigateToStep(parseInt(link.dataset.step));
+                });
+            });
+        }
+
+        function saveState() {
+            localStorage.setItem('advBlogWorkflowData', JSON.stringify(workflowData));
+        }
+
+        function loadWorkflowData() {
+            const saved = localStorage.getItem('advBlogWorkflowData');
+            workflowData = saved ? JSON.parse(saved) : {
+                blogTopic: '',
+                authorPersona: null,
+                blogDraft: '',
+                codeHeavyBlog: '',
+                reviewFeedback: null,
+                finalBlog: '',
+                imagePrompts: null,
+                linkedinPost: null,
+                currentStep: 1,
+                completedSteps: []
+            };
+            updateAllDisplays();
+        }
+        
+        function parseJsonResponse(response) {
+            try {
+                const cleaned = response.trim().replace(/^```json\s*|```\s*$/g, '');
+                return JSON.parse(cleaned);
+            } catch (e) {
+                console.error("JSON parsing error:", e);
+                alert("Could not parse the AI response. Please ensure it's valid JSON and try again.");
+                return null;
+            }
+        }
+
+        function saveStepData(step) {
+            let responseEl, response, jsonData;
+
+            switch(step) {
+                case 1:
+                    workflowData.blogTopic = document.getElementById('blogTopic').value;
+                    try {
+                        workflowData.authorPersona = JSON.parse(document.getElementById('personaDisplay').value);
+                    } catch (e) {
+                        alert('The persona data is not valid JSON. Please correct it.');
+                        return;
+                    }
+                    if (!workflowData.blogTopic.trim()) {
+                        alert('Please provide a blog topic.');
+                        return;
+                    }
+                    break;
+                case 2:
+                    response = document.getElementById('response2').value;
+                    if (!response.trim()) { alert('Please enter the AI response.'); return; }
+                    workflowData.blogDraft = response;
+                    break;
+                case 3:
+                    response = document.getElementById('response3').value;
+                    if (!response.trim()) { alert('Please enter the AI response.'); return; }
+                    workflowData.codeHeavyBlog = response;
+                    break;
+                case 4:
+                    response = document.getElementById('response4').value;
+                    if (!response.trim()) { alert('Please enter the AI response.'); return; }
+                    jsonData = parseJsonResponse(response);
+                    if (!jsonData) return;
+                    workflowData.reviewFeedback = jsonData;
+                    break;
+                case 5:
+                    response = document.getElementById('response5').value;
+                    if (!response.trim()) { alert('Please enter the AI response.'); return; }
+                    workflowData.finalBlog = response;
+                    break;
+                case 6:
+                     response = document.getElementById('response6').value;
+                    if (!response.trim()) { alert('Please enter the AI response.'); return; }
+                    jsonData = parseJsonResponse(response);
+                    if (!jsonData) return;
+                    workflowData.imagePrompts = jsonData;
+                    break;
+                case 7:
+                     response = document.getElementById('response7').value;
+                    if (!response.trim()) { alert('Please enter the AI response.'); return; }
+                    jsonData = parseJsonResponse(response);
+                    if (!jsonData) return;
+                    workflowData.linkedinPost = jsonData;
+                    break;
+            }
+
+            if (!workflowData.completedSteps.includes(step)) {
+                workflowData.completedSteps.push(step);
+            }
+
+            workflowData.currentStep = Math.max(workflowData.currentStep, step + 1);
+            saveState();
+            markStepAsCompletedUI(step);
+            updateAllDisplays();
+            updateProgress();
+            
+            if (step < 8) {
+                navigateToStep(step + 1);
+            } else {
+                navigateToStep(8); // Stay on the final step
+            }
+        }
+
+        // --- UI Update Functions ---
+        function updateAllDisplays() {
+            if (workflowData.blogDraft) {
+                 document.getElementById('blogDraftForCodeInjection').innerText = workflowData.blogDraft.substring(0, 500) + '...';
+            }
+            if (workflowData.finalBlog) {
+                 document.getElementById('finalBlogDisplay').innerText = workflowData.finalBlog;
+            } else if(workflowData.codeHeavyBlog) {
+                 document.getElementById('finalBlogDisplay').innerText = "Blog enhancement was skipped or not completed. Showing code-heavy version.\n\n" + workflowData.codeHeavyBlog;
+            }
+            if(workflowData.imagePrompts) {
+                 document.getElementById('imagePromptsDisplay').innerText = JSON.stringify(workflowData.imagePrompts, null, 2);
+            }
+            if(workflowData.linkedinPost) {
+                 document.getElementById('linkedinPostDisplay').innerText = `Post:\n${workflowData.linkedinPost.post_text}\n\nHashtags: ${workflowData.linkedinPost.hashtags.join(' ')}`;
+            }
+        }
+        
+        function markStepAsCompletedUI(step) {
+            const stepElement = document.getElementById(`step${step}`);
+            if (stepElement) stepElement.classList.add('step-completed');
+            
+            const navLink = document.querySelector(`[data-step="${step}"]`);
+            if (navLink && !navLink.innerHTML.includes('fa-check')) {
+                 navLink.innerHTML += ' <i class="fas fa-check text-success"></i>';
+            }
+        }
+
+        function navigateToStep(step) {
+            document.querySelectorAll('.workflow-step').forEach(el => el.style.display = 'none');
+            const targetStep = document.getElementById(`step${step}`);
+            if(targetStep) {
+                targetStep.style.display = 'block';
+                // Ensure the content is shown
+                const collapseElement = targetStep.querySelector('.collapse');
+                if (collapseElement) {
+                   const bsCollapse = new bootstrap.Collapse(collapseElement, { toggle: false });
+                   bsCollapse.show();
+                }
+            }
+
+            document.querySelectorAll('#stepNavigation .nav-link').forEach(link => link.classList.remove('active'));
+            const activeLink = document.querySelector(`#stepNavigation [data-step="${step}"]`);
+            if(activeLink) activeLink.classList.add('active');
+            
+            workflowData.currentStep = step;
+            updateProgress();
+        }
+
+        function updateProgress() {
+            const completed = workflowData.completedSteps.length;
+            const totalSteps = 7; // Number of actionable steps before final output
+            const percentage = (completed / totalSteps) * 100;
+            const progressBar = document.getElementById('progressBar');
+            progressBar.style.width = percentage + '%';
+            progressBar.textContent = `Step ${completed} of ${totalSteps} (${Math.round(percentage)}%)`;
+            if (completed >= totalSteps) {
+                progressBar.classList.add('bg-success');
+                 progressBar.textContent = `Workflow Complete!`;
+            } else {
+                 progressBar.classList.remove('bg-success');
+            }
+        }
+        
+        function copyToClipboard(elementId) {
+            const textToCopy = document.getElementById(elementId).textContent;
+            const tempTextArea = document.createElement('textarea');
+            tempTextArea.value = textToCopy;
+            document.body.appendChild(tempTextArea);
+            tempTextArea.select();
+            document.execCommand('copy');
+            document.body.removeChild(tempTextArea);
+            alert('Prompt copied to clipboard!');
+        }
+
+        function downloadWorkflowData() {
+            const dataStr = JSON.stringify(workflowData, null, 2);
+            const blob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'ai-blog-workflow-data.json';
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function resetWorkflow() {
+            // A custom modal would be better, but for simplicity, we use confirm.
+            const userConfirmed = window.confirm('Are you sure you want to reset the workflow? All data will be lost.');
+            if (userConfirmed) {
+                localStorage.removeItem('advBlogWorkflowData');
+                location.reload();
+            }
+        }
+        
+        // --- Prompt Generation Functions ---
+        function generateFinalPrompt(step) {
+            let basePrompt, finalPrompt;
+            switch(step) {
+                case 2:
+                    if (!workflowData.blogTopic || !workflowData.authorPersona) { alert('Complete Step 1 first.'); return; }
+                    basePrompt = document.getElementById('promptText2').value;
+                    finalPrompt = basePrompt.replace('{blog_topic}', workflowData.blogTopic);
+                    finalPrompt = finalPrompt.replace('{author_persona}', JSON.stringify(workflowData.authorPersona, null, 2));
+                    document.getElementById('finalPrompt2').textContent = finalPrompt;
+                    break;
+                case 3:
+                    if (!workflowData.blogDraft) { alert('Complete Step 2 first.'); return; }
+                     basePrompt = document.getElementById('promptText3').value;
+                     finalPrompt = basePrompt.replace('{blog_draft}', workflowData.blogDraft);
+                     document.getElementById('finalPrompt3').textContent = finalPrompt;
+                    break;
+                case 4:
+                    if (!workflowData.codeHeavyBlog || !workflowData.authorPersona) { alert('Complete Step 3 first.'); return; }
+                    basePrompt = document.getElementById('promptText4').value;
+                    finalPrompt = finalPrompt.replace('{author_persona}', JSON.stringify(workflowData.authorPersona, null, 2));
+                    finalPrompt = finalPrompt.replace('{code_heavy_blog}', workflowData.codeHeavyBlog);
+                    document.getElementById('finalPrompt4').textContent = finalPrompt;
+                    break;
+                case 5:
+                    if (!workflowData.codeHeavyBlog || !workflowData.reviewFeedback) { alert('Complete Step 4 first.'); return; }
+                    basePrompt = document.getElementById('promptText5').value;
+                    finalPrompt = basePrompt.replace('{review_feedback}', JSON.stringify(workflowData.reviewFeedback, null, 2));
+                    finalPrompt = finalPrompt.replace('{code_heavy_blog}', workflowData.codeHeavyBlog);
+                    document.getElementById('finalPrompt5').textContent = finalPrompt;
+                    break;
+                case 6:
+                    const blogForImages = workflowData.finalBlog || workflowData.codeHeavyBlog;
+                    if (!blogForImages) { alert('Complete Step 5 first.'); return; }
+                    basePrompt = document.getElementById('promptText6').value;
+                    finalPrompt = finalPrompt.replace('{final_blog}', blogForImages);
+                    document.getElementById('finalPrompt6').textContent = finalPrompt;
+                    break;
+                 case 7:
+                    const blogForPost = workflowData.finalBlog || workflowData.codeHeavyBlog;
+                    if (!blogForPost || !workflowData.authorPersona) { alert('Complete Step 5 first.'); return; }
+                    basePrompt = document.getElementById('promptText7').value;
+                    finalPrompt = finalPrompt.replace('{author_persona}', JSON.stringify(workflowData.authorPersona, null, 2));
+                    finalPrompt = finalPrompt.replace('{final_blog}', blogForPost);
+                    document.getElementById('finalPrompt7').textContent = finalPrompt;
+                    break;
+            }
+        }
+    </script>
+</body>
+</html>
