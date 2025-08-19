@@ -73,36 +73,58 @@ def get_default_chrome_user_data_dir() -> str:
     return str(path)
 
 
-def get_chrome_executable_path() -> str:
+def get_chrome_executable_path() -> Optional[str]:
     system = platform.system()
-    candidates = []
+    env_overrides = [
+        os.environ.get("CHROME").strip() if os.environ.get("CHROME") else None,
+        os.environ.get("CHROME_BINARY").strip() if os.environ.get("CHROME_BINARY") else None,
+        os.environ.get("GOOGLE_CHROME_SHIM").strip() if os.environ.get("GOOGLE_CHROME_SHIM") else None,
+    ]
+    env_overrides = [p for p in env_overrides if p]
+
+    candidates: List[str] = []
     if system == "Darwin":
         candidates = [
             "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
             str(Path.home() / "Applications/Google Chrome.app/Contents/MacOS/Google Chrome"),
+            "/Applications/Chromium.app/Contents/MacOS/Chromium",
         ]
     elif system == "Windows":
         for env in ["PROGRAMFILES(X86)", "PROGRAMFILES", "LOCALAPPDATA"]:
             base = os.environ.get(env)
             if base:
                 candidates.append(str(Path(base) / "Google/Chrome/Application/chrome.exe"))
+                candidates.append(str(Path(base) / "Chromium/Application/chrome.exe"))
     else:
-        candidates = ["/usr/bin/google-chrome", "/opt/google/chrome/chrome", "/usr/bin/google-chrome-stable"]
+        candidates = [
+            "/usr/bin/google-chrome",
+            "/usr/bin/google-chrome-stable",
+            "/opt/google/chrome/chrome",
+            "/usr/bin/chromium",
+            "/usr/bin/chromium-browser",
+            "/snap/bin/chromium",
+        ]
 
-    print(f"[DEBUG] Checking Chrome executable candidates: {candidates}")
-    for p in candidates:
-        if Path(p).exists():
-            print(f"[DEBUG] Found Chrome executable: {p}")
-            return p
-    raise FileNotFoundError(f"Chrome executable not found. Checked: {candidates}")
+    print(f"[DEBUG] Checking Chrome executable env overrides: {env_overrides}")
+    for p in env_overrides + candidates:
+        try:
+            if p and Path(p).exists():
+                print(f"[DEBUG] Found Chrome executable: {p}")
+                return p
+        except Exception:
+            continue
+    print("[WARNING] Chrome/Chromium executable not found via known paths; relying on system default.")
+    # Returning None signals to not set binary_location; chromedriver will use system default
+    return None
 
 # --- Chrome Configuration & Driver Creation ---
-def configure_chrome_options(user_data_dir: str, profile_dir: str, chrome_path: str) -> Options:
+def configure_chrome_options(user_data_dir: str, profile_dir: str, chrome_path: Optional[str]) -> Options:
     print(f"[INFO] Configuring Chrome options with user_data_dir={user_data_dir}, profile={profile_dir}")
     opts = Options()
     opts.add_argument(f"--user-data-dir={Path(user_data_dir).parent}")
     opts.add_argument(f"--profile-directory={profile_dir}")
-    opts.binary_location = chrome_path
+    if chrome_path:
+        opts.binary_location = chrome_path
     opts.add_argument("--start-maximized")
     opts.add_experimental_option("excludeSwitches", ["enable-automation"])
     opts.add_experimental_option("useAutomationExtension", False)
