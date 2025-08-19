@@ -144,9 +144,9 @@ def run_stock_earnings_analysis(
                 analysis = _extract_json_from_text(getattr(api_text, "content", str(api_text)) or "") or {}
 
             if isinstance(analysis, dict):
-                # Basic bullish filter
+                # Only include if probability is numeric and >= 0.5
                 prob = analysis.get("bullish_probability")
-                if prob is None or (isinstance(prob, (int, float)) and prob >= 0.5):
+                if isinstance(prob, (int, float)) and prob >= 0.5:
                     pplx_payloads[p.symbol] = analysis
         results["perplexity_analyses"] = pplx_payloads
 

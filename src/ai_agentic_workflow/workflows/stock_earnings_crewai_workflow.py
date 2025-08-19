@@ -168,7 +168,7 @@ class StockEarningsCrewWorkflow:
 
                 if isinstance(analysis, dict):
                     prob = analysis.get("bullish_probability")
-                    if prob is None or (isinstance(prob, (int, float)) and prob >= 0.5):
+                    if isinstance(prob, (int, float)) and prob >= 0.5:
                         analyses[sym] = analysis
             self.state.perplexity_analyses = analyses
             if not analyses:
