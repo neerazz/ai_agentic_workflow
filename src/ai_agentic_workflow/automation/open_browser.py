@@ -139,6 +139,66 @@ def create_driver(options: Options) -> webdriver.Chrome:
     print("[SUCCESS] ChromeDriver initialized.")
     return driver
 
+# --- Persistent Session Helpers ---
+def start_persistent_browser(profile_dir: str = "Default") -> webdriver.Chrome | None:
+    """
+    Starts a Chrome browser using the user's default profile so sessions persist
+    (avoids repeated logins/CAPTCHAs). Returns a live webdriver instance.
+    """
+    try:
+        import os as _os
+        if _os.getenv("DISABLE_BROWSER", "0") == "1":
+            logger.warning("Browser disabled via DISABLE_BROWSER env var. Returning None driver.")
+            return None
+        user_data_dir = get_default_chrome_user_data_dir()
+        chrome_path = get_chrome_executable_path()
+        opts = configure_chrome_options(user_data_dir, profile_dir, chrome_path)
+        return create_driver(opts)
+    except Exception as e:
+        logger.warning("Could not start persistent browser: %s. Falling back to API-only.", e)
+        return None
+
+
+def ensure_site_open(driver: webdriver.Chrome, site: Site, timeout: int = 30) -> None:
+    """
+    Navigates the current tab to the target site if not already there.
+    """
+    cfg = SITE_CONFIG[site]
+    try:
+        if cfg["url"] not in driver.current_url:
+            navigate_to_site(driver, cfg["url"], timeout)
+    except Exception:
+        navigate_to_site(driver, cfg["url"], timeout)
+
+
+def run_prompt_in_existing_tab(
+    driver: webdriver.Chrome | None,
+    site: Site,
+    prompt_text: str,
+    element_wait_timeout: int = 30
+) -> tuple[str, str | None]:
+    """
+    Reuses an existing driver/tab to send a prompt to the given site and extract the response.
+    Keeps the browser open for subsequent calls.
+    """
+    if driver is None:
+        raise RuntimeError("No browser driver available")
+    cfg = SITE_CONFIG[site]
+    ensure_site_open(driver, site, element_wait_timeout)
+    send_prompt(driver, cfg["input_locator"], prompt_text, element_wait_timeout)
+    wait_for_response_container(driver, cfg["response_locator"], element_wait_timeout)
+    final_url, text = extract_response(driver, cfg["response_locator"], element_wait_timeout)
+    return final_url, text
+
+
+def close_browser(driver: webdriver.Chrome | None) -> None:
+    if driver is None:
+        return
+    try:
+        driver.quit()
+    except Exception:
+        pass
+
 # --- Interaction Steps ---
 def navigate_to_site(driver: webdriver.Chrome, url: str, timeout: int) -> None:
     print(f"[INFO] Navigating to {url}...")
