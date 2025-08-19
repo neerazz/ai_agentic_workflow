@@ -102,15 +102,23 @@ def create_driver(options: Options) -> webdriver.Chrome:
     return driver
 
 # --- Persistent Session Helpers ---
-def start_persistent_browser(profile_dir: str = "Default") -> webdriver.Chrome:
+def start_persistent_browser(profile_dir: str = "Default") -> webdriver.Chrome | None:
     """
     Starts a Chrome browser using the user's default profile so sessions persist
     (avoids repeated logins/CAPTCHAs). Returns a live webdriver instance.
     """
-    user_data_dir = get_default_chrome_user_data_dir()
-    chrome_path = get_chrome_executable_path()
-    opts = configure_chrome_options(user_data_dir, profile_dir, chrome_path)
-    return create_driver(opts)
+    try:
+        import os as _os
+        if _os.getenv("DISABLE_BROWSER", "0") == "1":
+            logger.warning("Browser disabled via DISABLE_BROWSER env var. Returning None driver.")
+            return None
+        user_data_dir = get_default_chrome_user_data_dir()
+        chrome_path = get_chrome_executable_path()
+        opts = configure_chrome_options(user_data_dir, profile_dir, chrome_path)
+        return create_driver(opts)
+    except Exception as e:
+        logger.warning("Could not start persistent browser: %s. Falling back to API-only.", e)
+        return None
 
 
 def ensure_site_open(driver: webdriver.Chrome, site: Site, timeout: int = 30) -> None:
@@ -126,7 +134,7 @@ def ensure_site_open(driver: webdriver.Chrome, site: Site, timeout: int = 30) ->
 
 
 def run_prompt_in_existing_tab(
-    driver: webdriver.Chrome,
+    driver: webdriver.Chrome | None,
     site: Site,
     prompt_text: str,
     element_wait_timeout: int = 30
@@ -135,6 +143,8 @@ def run_prompt_in_existing_tab(
     Reuses an existing driver/tab to send a prompt to the given site and extract the response.
     Keeps the browser open for subsequent calls.
     """
+    if driver is None:
+        raise RuntimeError("No browser driver available")
     cfg = SITE_CONFIG[site]
     ensure_site_open(driver, site, element_wait_timeout)
     send_prompt(driver, cfg["input_locator"], prompt_text, element_wait_timeout)
@@ -143,7 +153,9 @@ def run_prompt_in_existing_tab(
     return final_url, text
 
 
-def close_browser(driver: webdriver.Chrome) -> None:
+def close_browser(driver: webdriver.Chrome | None) -> None:
+    if driver is None:
+        return
     try:
         driver.quit()
     except Exception:

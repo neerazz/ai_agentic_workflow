@@ -9,3 +9,20 @@ End-to-end pipelines orchestrating multiple clients.
 - [stock_earnings_crewai_workflow.py](stock_earnings_crewai_workflow.py) - CrewAI workflow for earnings-based stock screening using Perplexity (browser) + ChatGPT.
 - [basic_workflow.md](basic_workflow.md) - Example output from running the basic workflow.
 - [__init__.py](__init__.py) - Package initializer.
+
+## Stock Earnings CrewAI Workflow
+
+CrewAI pipeline orchestrating:
+- ChatGPT to fetch upcoming earnings list
+- Perplexity in a persistent browser session (fallback to API) for analyses
+- ChatGPT to select top 2 bullish candidates
+- Predictions from both ChatGPT and Perplexity
+
+Run:
+```
+python -m src.ai_agentic_workflow.workflows.stock_earnings_crewai_workflow
+```
+
+Environment variables required:
+- `OPENAI_API_KEY`
+- `PERPLEXITY_API_KEY`
