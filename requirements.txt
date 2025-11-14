@@ -14,3 +14,4 @@ notion-client
 langchain_ollama
 crewai
 crewai[tools]
+rich
