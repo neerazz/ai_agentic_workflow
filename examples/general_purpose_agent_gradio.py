@@ -343,13 +343,6 @@ def create_ui():
 
                 progress_display = gr.Markdown(format_progress_display())
 
-                # Auto-refresh progress every 0.5s when processing
-                demo.load(
-                    lambda: format_progress_display(),
-                    outputs=progress_display,
-                    every=0.5
-                )
-
         # History modal
         with gr.Row():
             history_display = gr.Markdown(visible=False)
@@ -361,22 +354,21 @@ def create_ui():
             outputs=[init_status],
         )
 
+        def chat_and_update(message, history):
+            """Chat and continuously update progress."""
+            result_history, result_progress = chat_with_agent(message, history)
+            return result_history, result_progress, ""
+
         send_btn.click(
-            chat_with_agent,
+            chat_and_update,
             inputs=[msg_input, chatbot],
-            outputs=[chatbot, progress_display],
-        ).then(
-            lambda: "",
-            outputs=[msg_input],
+            outputs=[chatbot, progress_display, msg_input],
         )
 
         msg_input.submit(
-            chat_with_agent,
+            chat_and_update,
             inputs=[msg_input, chatbot],
-            outputs=[chatbot, progress_display],
-        ).then(
-            lambda: "",
-            outputs=[msg_input],
+            outputs=[chatbot, progress_display, msg_input],
         )
 
         clear_btn.click(

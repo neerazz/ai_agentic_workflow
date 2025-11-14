@@ -336,9 +336,10 @@ demo.launch(server_port=7861)  # Use different port
 demo.launch(share=True)  # Creates public link
 ```
 
-**Slow progress updates:**
-- Normal! Progress refreshes every 0.5s
-- Reduce `every=0.5` to `every=0.2` for faster updates (line ~344)
+**Progress updates:**
+- Progress updates when you send a message or the agent responds
+- Updates are immediate and reflect the current state
+- No background auto-refresh (better compatibility across Gradio versions)
 
 ### Enhanced CLI Issues
 
