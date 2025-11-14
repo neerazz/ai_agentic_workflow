@@ -64,11 +64,25 @@ export GROQ_API_KEY="your-groq-api-key"
 - Gemini: https://makersuite.google.com/app/apikey
 - Groq: https://console.groq.com/keys
 
-### Run CLI
+### Choose Your Interface
 
+**🌐 Web UI (Gradio) - Recommended for most users:**
+```bash
+python examples/general_purpose_agent_gradio.py
+# Open http://localhost:7860 in your browser
+```
+
+**💻 Enhanced CLI - Real-time progress bars:**
+```bash
+python examples/general_purpose_agent_cli_enhanced.py
+```
+
+**⌨️ Basic CLI - Simple interface:**
 ```bash
 python examples/general_purpose_agent_cli.py
 ```
+
+**See [UI_GUIDE.md](UI_GUIDE.md) for detailed UI documentation with screenshots and tips.**
 
 ### Python Usage
 
@@ -298,6 +312,58 @@ config = get_config_by_name("accurate")
 config = get_config_by_name("local")
 # Local models = $0/month (requires LM Studio)
 ```
+
+---
+
+## 🎨 User Interfaces
+
+Three interfaces are available for different use cases:
+
+### 1. 🌐 Gradio Web UI (Best for most users)
+
+**Features:**
+- Beautiful browser-based chat interface
+- Real-time progress visualization with auto-refresh
+- Conversation history display
+- Easy configuration selection
+- Multi-device access (desktop, mobile, tablet)
+- Shareable links (optional)
+
+**Launch:**
+```bash
+python examples/general_purpose_agent_gradio.py
+# Navigate to http://localhost:7860
+```
+
+### 2. 💻 Enhanced CLI (Best for developers)
+
+**Features:**
+- Live progress tables with rich formatting
+- Task breakdown visualization
+- Real-time progress bars and spinners
+- Interactive commands (/help, /history, /clear)
+- Color-coded output with emojis
+- Terminal-based (no browser needed)
+
+**Launch:**
+```bash
+python examples/general_purpose_agent_cli_enhanced.py
+```
+
+### 3. ⌨️ Basic CLI (Simplest option)
+
+**Features:**
+- Simple command-line interface
+- Clean text output
+- No live progress (shows final results only)
+- Fastest startup
+
+**Launch:**
+```bash
+python examples/general_purpose_agent_cli.py
+```
+
+**Full UI documentation:** See [UI_GUIDE.md](UI_GUIDE.md) for screenshots, troubleshooting, and advanced features.
 
 ---
 
