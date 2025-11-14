@@ -236,6 +236,145 @@ class CritiqueEngine:
                     critical_issues=["Critique evaluation failed"],
                 )
 
+    def critique_task_plan(
+        self,
+        user_request: str,
+        task_plan,  # TaskPlan object
+        reasoning_context: Optional[str] = None
+    ) -> CritiqueResult:
+        """
+        Critique the task breakdown plan before execution.
+
+        Args:
+            user_request: Original user request.
+            task_plan: TaskPlan with breakdown.
+            reasoning_context: Optional reasoning context.
+
+        Returns:
+            CritiqueResult evaluating the task plan quality.
+        """
+        with trace_context("critique_task_plan") as span_id:
+            self.logger.info("Critiquing task plan", metadata={
+                "task_count": len(task_plan.tasks),
+            })
+
+            prompt = self._build_task_plan_critique_prompt(
+                user_request,
+                task_plan,
+                reasoning_context
+            )
+
+            try:
+                response = self.model_manager.generate_with_provider(
+                    provider_name=self.model_manager.config.planner_provider,
+                    model=self.model_manager.config.planner_model,
+                    prompt=prompt,
+                    temperature=0.2,
+                    system_prompt="You are a harsh critic evaluating task planning. Demand clarity, proper dependencies, and realistic success criteria. Be brutal about poor planning."
+                )
+
+                result = self._parse_critique_response(response.content)
+
+                self.logger.info("Task plan critique completed", metadata={
+                    "decision": result.decision.value,
+                    "quality_score": result.quality_score,
+                })
+
+                return result
+
+            except Exception as e:
+                self.logger.error("Task plan critique failed", exc_info=True)
+
+                return CritiqueResult(
+                    decision=CritiqueDecision.RETRY,
+                    quality_score=0.5,
+                    accuracy_score=0.5,
+                    completeness_score=0.5,
+                    clarity_score=0.5,
+                    relevance_score=0.5,
+                    critical_issues=["Failed to critique task plan"],
+                )
+
+    def _build_task_plan_critique_prompt(
+        self,
+        user_request: str,
+        task_plan,
+        reasoning_context: Optional[str]
+    ) -> str:
+        """Build prompt for task plan critique."""
+        tasks_summary = "\n".join([
+            f"**Task {t.task_id}**: {t.title}\n"
+            f"  Description: {t.description}\n"
+            f"  Source: {t.source.value}\n"
+            f"  Success Criteria: {', '.join(t.success_criteria)}\n"
+            f"  Dependencies: {', '.join(t.dependencies) if t.dependencies else 'None'}\n"
+            f"  Priority: {t.priority}"
+            for t in task_plan.tasks
+        ])
+
+        prompt = f"""You are a HARSH CRITIC evaluating a task breakdown plan. Be BRUTAL about poor planning.
+
+**User Request:**
+{user_request}
+
+**Proposed Task Plan:**
+- Total tasks: {len(task_plan.tasks)}
+- Estimated complexity: {task_plan.estimated_complexity}
+- Estimated time: {task_plan.estimated_time}
+
+**Tasks:**
+{tasks_summary}
+"""
+
+        if reasoning_context:
+            prompt += f"\n**Reasoning Context:**\n{reasoning_context}"
+
+        prompt += """
+
+**Evaluate This Task Plan:**
+
+1. **Accuracy** (0.0-1.0): Are tasks correctly addressing the user's request?
+2. **Completeness** (0.0-1.0): Do tasks cover everything needed?
+3. **Clarity** (0.0-1.0): Are task descriptions clear and specific?
+4. **Relevance** (0.0-1.0): Are all tasks necessary?
+
+**Check for:**
+- Are task counts reasonable (2-15)?
+- Are dependencies correct and non-circular?
+- Are success criteria measurable?
+- Are tasks properly scoped (not too broad/narrow)?
+- Is the execution order logical?
+- Are there any redundant tasks?
+
+**Critical Issues**: Major problems that MUST be fixed
+**Minor Issues**: Things that could be improved
+**Suggestions**: Specific improvements to the plan
+
+**Decision:**
+- ACCEPT: Plan is solid and ready for execution
+- RETRY: Plan has issues, needs replanning
+- REJECT: Plan is fundamentally flawed
+
+**Response Format (JSON):**
+```json
+{
+    "accuracy_score": 0.0-1.0,
+    "completeness_score": 0.0-1.0,
+    "clarity_score": 0.0-1.0,
+    "relevance_score": 0.0-1.0,
+    "critical_issues": ["list of critical problems with the plan"],
+    "minor_issues": ["list of minor issues"],
+    "suggestions": ["specific improvements to the plan"],
+    "harsh_comments": "Your brutal assessment of this task plan",
+    "decision": "accept|retry|reject"
+}
+```
+
+Be HARSH. Bad planning leads to bad execution. Demand EXCELLENCE.
+"""
+
+        return prompt
+
     def _build_task_critique_prompt(
         self,
         task_description: str,

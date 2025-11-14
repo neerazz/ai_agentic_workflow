@@ -5,8 +5,9 @@ A sophisticated, critique-driven AI agent that **improves its own outputs** thro
 ## 🌟 Key Features
 
 ### ✅ **Self-Improving Critique Loops**
+- **Three-layer critique system**: Task planning, execution, and final synthesis
 - **Harsh, unbiased evaluation** of every output (no favoritism)
-- **Up to 3 retry attempts** per task with improvement suggestions
+- **Up to 3 retry attempts** at each stage with improvement suggestions
 - **Intelligent decision making** based on quality trends
 - **Automatic stop** if not improving
 
@@ -21,6 +22,12 @@ A sophisticated, critique-driven AI agent that **improves its own outputs** thro
 - **Completeness** (35% weight): Addresses all requirements?
 - **Clarity** (15% weight): Well-structured?
 - **Relevance** (15% weight): On-topic?
+
+### ✅ **Conversation Memory**
+- **Multi-turn conversation support** with session state management
+- **Smart context passing**: Only Q&A history (excludes internal reasoning/tasks)
+- **Token optimization**: ~4000 token limit with intelligent pruning
+- **Context-aware follow-ups**: Automatically includes relevant conversation history
 
 ### ✅ **Progress Tracking**
 - Real-time task status updates
@@ -109,11 +116,37 @@ if result.success:
                  │
                  ▼
 ┌──────────────────────────────────────────────────────────┐
-│  4. Deep Task Reasoning                                  │
-│     • Understand core goal                               │
-│     • Determine strategy                                 │
-│     • Break into 2-15 tasks                              │
-│     • Validate dependencies                              │
+│  4. Deep Task Reasoning WITH CRITIQUE LOOP               │
+│                                                           │
+│     For task planning (max 3 attempts):                  │
+│                                                           │
+│     ┌──────────────────┐                                 │
+│     │ Reason & Plan    │                                 │
+│     │ • Understand     │                                 │
+│     │ • Strategy       │                                 │
+│     │ • 2-15 tasks     │                                 │
+│     │ • Dependencies   │                                 │
+│     └────────┬─────────┘                                 │
+│              │                                            │
+│              ▼                                            │
+│     ┌──────────────────┐                                 │
+│     │ Critique Plan    │                                 │
+│     │ • Task quality   │                                 │
+│     │ • Dependencies   │                                 │
+│     │ • Completeness   │                                 │
+│     └────────┬─────────┘                                 │
+│              │                                            │
+│              ▼                                            │
+│     ┌──────────────────┐                                 │
+│     │ Decision Maker   │                                 │
+│     │ Accept/Retry?    │                                 │
+│     └────────┬─────────┘                                 │
+│              │                                            │
+│         Retry│Accept                                     │
+│      ────────┴────────                                   │
+│      ↑               ↓                                    │
+│ Improve plan     Continue                                │
+│                                                           │
 └────────────────┬─────────────────────────────────────────┘
                  │
                  ▼
@@ -150,16 +183,44 @@ if result.success:
                  │
                  ▼
 ┌──────────────────────────────────────────────────────────┐
-│  6. Output Synthesis                                     │
-│     • Combine task results                               │
-│     • Generate coherent response                         │
+│  6. Output Synthesis WITH CRITIQUE LOOP                  │
+│                                                           │
+│     For final synthesis (max 3 attempts):                │
+│                                                           │
+│     ┌──────────────────┐                                 │
+│     │ Synthesize       │                                 │
+│     │ • Combine tasks  │                                 │
+│     │ • Coherent flow  │                                 │
+│     │ • Address request│                                 │
+│     └────────┬─────────┘                                 │
+│              │                                            │
+│              ▼                                            │
+│     ┌──────────────────┐                                 │
+│     │ Final Critique   │                                 │
+│     │ • Completeness   │                                 │
+│     │ • Accuracy       │                                 │
+│     │ • Clarity        │                                 │
+│     └────────┬─────────┘                                 │
+│              │                                            │
+│              ▼                                            │
+│     ┌──────────────────┐                                 │
+│     │ Decision Maker   │                                 │
+│     │ Accept/Retry?    │                                 │
+│     └────────┬─────────┘                                 │
+│              │                                            │
+│         Retry│Accept                                     │
+│      ────────┴────────                                   │
+│      ↑               ↓                                    │
+│ Improve output   Continue                                │
+│                                                           │
 └────────────────┬─────────────────────────────────────────┘
                  │
                  ▼
 ┌──────────────────────────────────────────────────────────┐
-│  7. Final Critique                                       │
-│     • Validate against original request                  │
-│     • Overall quality assessment                         │
+│  7. Save to Conversation Memory                          │
+│     • Store user query + AI response (Q&A only)          │
+│     • Exclude internal reasoning/tasks                   │
+│     • Available for follow-up questions                  │
 └────────────────┬─────────────────────────────────────────┘
                  │
                  ▼
@@ -168,16 +229,30 @@ if result.success:
 
 ### Critique Loop Detail
 
-Each task goes through up to 3 refinement cycles:
+**Three critique loops are applied:**
 
+1. **Task Planning Critique** (before execution):
+```python
+Attempt 1:
+  Plan (8 tasks) → Critique (score: 0.68) → RETRY (missing dependencies)
+Attempt 2:
+  Plan (6 tasks, improved) → Critique (score: 0.82) → ACCEPT ✓
+```
+
+2. **Task Execution Critique** (per task):
 ```python
 Attempt 1:
   Execute → Critique (score: 0.65) → RETRY (improve clarity)
-
 Attempt 2:
   Execute (with improvements) → Critique (score: 0.78) → ACCEPT ✓
+```
 
-Result: High-quality output
+3. **Final Synthesis Critique** (final output):
+```python
+Attempt 1:
+  Synthesize → Critique (score: 0.72) → RETRY (missing context)
+Attempt 2:
+  Synthesize (improved) → Critique (score: 0.85) → ACCEPT ✓
 ```
 
 **Decision Logic:**
@@ -227,6 +302,39 @@ config = get_config_by_name("local")
 ---
 
 ## 🔧 Advanced Usage
+
+### Multi-Turn Conversations
+
+```python
+from ai_agentic_workflow.agents import GeneralPurposeAgent
+from ai_agentic_workflow.config import get_free_tier_config
+
+config = get_free_tier_config()
+agent = GeneralPurposeAgent(config)
+
+# First question
+result1 = agent.execute("What are the main features of Python?")
+print(result1.output)
+
+# Follow-up question (automatically includes previous Q&A context)
+result2 = agent.execute("How does the first feature you mentioned compare to Java?")
+print(result2.output)
+# Agent remembers previous response and provides contextual answer
+
+# Get conversation history
+history = agent.get_conversation_history()
+for turn in history:
+    print(f"Turn {turn['turn_id']}: {turn['user_query'][:50]}...")
+
+# Clear conversation (start fresh)
+agent.clear_conversation()
+```
+
+**How Conversation Memory Works:**
+- Stores only user queries and AI responses (NOT internal reasoning/tasks)
+- Smart context selection: 3-5 recent turns based on keywords
+- Token optimization: ~4000 token limit with truncation
+- Keywords triggering more context: "previous", "earlier", "before", "mentioned", etc.
 
 ### Custom Agent
 
@@ -302,7 +410,8 @@ setup_logging(level="INFO", structured=True)
 
 ### CritiqueEngine
 - Harsh, unbiased evaluation
-- Multi-dimensional scoring
+- Multi-dimensional scoring (accuracy, completeness, clarity, relevance)
+- **Three critique methods**: `critique_task_plan()`, `critique_task_output()`, `critique_final_output()`
 - Critical issue identification
 - Improvement suggestions
 
@@ -318,6 +427,12 @@ setup_logging(level="INFO", structured=True)
 - Dependency analysis
 - Strategy optimization
 
+### ConversationManager
+- Multi-turn conversation state
+- Q&A-only storage (excludes reasoning)
+- Smart context selection (3-5 turns)
+- Token optimization (~4000 limit)
+
 ### ProgressTracker
 - Real-time status updates
 - UI-ready data structures
@@ -331,8 +446,9 @@ setup_logging(level="INFO", structured=True)
 - Standard interface
 
 ### GeneralPurposeAgent
-- Complete workflow implementation
+- Complete workflow implementation with **3 critique loops**
 - Integrates all components
+- Multi-turn conversation memory
 - Progress callbacks
 - Full logging/tracing
 

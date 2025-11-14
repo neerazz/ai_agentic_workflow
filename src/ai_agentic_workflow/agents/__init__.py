@@ -9,6 +9,7 @@ from .critique_engine import CritiqueEngine, CritiqueResult, CritiqueDecision
 from .decision_maker import DecisionMaker, Decision, DecisionReason
 from .task_reasoner import TaskReasoner
 from .progress_tracker import ProgressTracker, TaskProgress, WorkflowProgress
+from .conversation_manager import ConversationManager, ConversationTurn
 from .base_agent import BaseAgent
 from .general_purpose_agent import GeneralPurposeAgent
 
@@ -23,6 +24,8 @@ __all__ = [
     'ProgressTracker',
     'TaskProgress',
     'WorkflowProgress',
+    'ConversationManager',
+    'ConversationTurn',
     'BaseAgent',
     'GeneralPurposeAgent',
 ]

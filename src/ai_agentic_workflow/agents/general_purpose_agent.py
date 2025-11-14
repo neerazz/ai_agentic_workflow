@@ -1,10 +1,12 @@
 """
-General Purpose Agent with critique-driven self-improvement.
+General Purpose Agent with critique-driven self-improvement and conversation memory.
 
-Implements complete workflow: confidence → clarification → reasoning →
-task execution → critique loops → synthesis.
+Implements complete workflow with ALL critique loops:
+- Task planning critique
+- Task execution critique
+- Final synthesis critique
 
-Designed as extensible template for creating specialized agents.
+Plus conversation context management for multi-turn interactions.
 """
 
 import uuid
@@ -15,6 +17,7 @@ from .critique_engine import CritiqueEngine, CritiqueDecision
 from .decision_maker import DecisionMaker
 from .task_reasoner import TaskReasoner
 from .progress_tracker import ProgressTracker, TaskProgress, WorkflowStage, TaskStatus
+from .conversation_manager import ConversationManager
 
 from ..orchestrator.confidence_scorer import ConfidenceScorer
 from ..orchestrator.clarification_handler import ClarificationHandler
@@ -25,14 +28,15 @@ from ..logging import get_logger, trace_context, get_trace_manager
 
 class GeneralPurposeAgent(BaseAgent):
     """
-    General-purpose agent with self-improving critique loops.
+    General-purpose agent with self-improving critique loops and conversation memory.
 
     Features:
     - Multi-dimensional confidence scoring
     - Intelligent clarification
-    - Deep task reasoning (2-15 tasks)
-    - Critique-driven quality improvement
-    - Up to 3 retry attempts per task
+    - Deep task reasoning (2-15 tasks) WITH CRITIQUE
+    - Task execution WITH CRITIQUE (up to 3 retries per task)
+    - Final synthesis WITH CRITIQUE (up to 3 retries)
+    - Conversation context management (Q&A only, no reasoning details)
     - Progress tracking for UI integration
     """
 
@@ -64,14 +68,18 @@ class GeneralPurposeAgent(BaseAgent):
         self.critique_engine = CritiqueEngine(self.model_manager, config.confidence.min_confidence_threshold)
         self.decision_maker = DecisionMaker(self.model_manager, max_retries=3)
         self.progress_tracker = ProgressTracker()
+        self.conversation_manager = ConversationManager(
+            max_history_turns=10,
+            max_context_tokens=4000
+        )
 
         self.progress_callback = progress_callback
 
-        self.logger.info("GeneralPurposeAgent fully initialized")
+        self.logger.info("GeneralPurposeAgent fully initialized with conversation memory")
 
     def execute(self, user_input: str, context: Optional[Dict[str, Any]] = None) -> AgentResult:
         """
-        Execute the complete workflow with critique loops.
+        Execute the complete workflow with ALL critique loops and conversation context.
 
         Args:
             user_input: User's request/question.
@@ -99,57 +107,64 @@ class GeneralPurposeAgent(BaseAgent):
 
         try:
             with trace_context("general_purpose_agent", trace_id=trace_id, is_trace=False):
-                # Stage 1: Confidence Assessment
+                # Get conversation context (Q&A only, no reasoning)
+                conversation_context = self.conversation_manager.get_context_for_new_request(user_input)
+
+                # Stage 1: Confidence Assessment & Clarification
                 self._update_stage(workflow_id, WorkflowStage.CLARIFYING)
                 enhanced_query, clarification_context = self._assess_and_clarify(
-                    user_input, context, workflow_id
+                    user_input, conversation_context, workflow_id
                 )
 
-                # Stage 2: Task Reasoning and Planning
+                # Stage 2: Task Reasoning & Planning WITH CRITIQUE LOOP (max 3 attempts)
                 self._update_stage(workflow_id, WorkflowStage.PLANNING)
-                task_plan = self._reason_and_plan(enhanced_query, clarification_context, workflow_id)
+                task_plan = self._reason_and_plan_with_critique(
+                    enhanced_query,
+                    conversation_context,
+                    clarification_context,
+                    workflow_id
+                )
 
                 # Stage 3: Task Execution with Critique Loops
                 self._update_stage(workflow_id, WorkflowStage.EXECUTING)
                 execution_results = self._execute_with_critique(task_plan, workflow_id)
 
-                # Stage 4: Final Critique
-                self._update_stage(workflow_id, WorkflowStage.CRITIQUING)
-                final_output = self._synthesize_output(user_input, task_plan, execution_results)
-
-                final_critique = self.critique_engine.critique_final_output(
-                    user_request=user_input,
-                    final_output=final_output,
-                    execution_context={
-                        "tasks_completed": len(execution_results),
-                        "execution_time": progress.elapsed_time(),
-                    }
+                # Stage 4: Synthesis WITH CRITIQUE LOOP (max 3 attempts)
+                self._update_stage(workflow_id, WorkflowStage.SYNTHESIZING)
+                final_output = self._synthesize_with_critique(
+                    user_input,
+                    task_plan,
+                    execution_results,
+                    conversation_context,
+                    workflow_id
                 )
-
-                # Decide if output is acceptable
-                if final_critique.decision == CritiqueDecision.ACCEPT:
-                    success = True
-                    self.logger.info(f"Final output accepted (score: {final_critique.quality_score:.2f})")
-                else:
-                    success = True  # Still return output even if not perfect
-                    self.logger.warning(f"Final output has issues (score: {final_critique.quality_score:.2f})")
 
                 # Complete workflow
                 self._update_stage(workflow_id, WorkflowStage.COMPLETED)
-                self.progress_tracker.complete_workflow(workflow_id, final_output, success)
+                self.progress_tracker.complete_workflow(workflow_id, final_output, success=True)
                 self._notify_progress(progress)
+
+                # Add to conversation history (Q&A ONLY, no reasoning/tasks)
+                self.conversation_manager.add_turn(
+                    user_query=user_input,
+                    ai_response=final_output,
+                    metadata={
+                        'workflow_id': workflow_id,
+                        'execution_time': progress.elapsed_time(),
+                    }
+                )
 
                 trace_manager.end_trace(trace_id)
 
                 return AgentResult(
-                    success=success,
+                    success=True,
                     output=final_output,
                     metadata={
                         'workflow_id': workflow_id,
                         'trace_id': trace_id,
-                        'final_critique': final_critique.to_dict(),
                         'tasks_executed': len(execution_results),
                         'execution_time': progress.elapsed_time(),
+                        'conversation_turn': len(self.conversation_manager.turns),
                         'progress': progress.to_dict(),
                     }
                 )
@@ -164,15 +179,18 @@ class GeneralPurposeAgent(BaseAgent):
     def _assess_and_clarify(
         self,
         user_input: str,
-        context: Optional[Dict],
+        conversation_context: str,
         workflow_id: str
     ) -> tuple[str, str]:
         """Assess confidence and clarify if needed."""
         with trace_context("assess_and_clarify"):
             self.logger.info("Assessing confidence")
 
+            # Include conversation context in confidence assessment
+            full_context = conversation_context if conversation_context else None
+
             # Score confidence
-            confidence_score = self.confidence_scorer.score(user_input, context)
+            confidence_score = self.confidence_scorer.score(user_input, full_context)
 
             self.logger.info(f"Confidence: {confidence_score.overall:.2f}")
 
@@ -196,12 +214,66 @@ class GeneralPurposeAgent(BaseAgent):
 
             return user_input, ""
 
-    def _reason_and_plan(self, query: str, context: str, workflow_id: str):
-        """Deep reasoning and task planning."""
-        with trace_context("reason_and_plan"):
-            self.logger.info("Reasoning about task breakdown")
+    def _reason_and_plan_with_critique(
+        self,
+        query: str,
+        conversation_context: str,
+        clarification_context: str,
+        workflow_id: str
+    ):
+        """
+        Deep reasoning and task planning WITH CRITIQUE LOOP.
 
-            task_plan = self.task_reasoner.reason_and_break_down(query, context)
+        Tries up to 3 times to create an acceptable plan.
+        """
+        with trace_context("reason_and_plan_with_critique"):
+            self.logger.info("Reasoning about task breakdown with critique")
+
+            # Combine contexts
+            full_context = f"{conversation_context}\n\n{clarification_context}" if clarification_context else conversation_context
+
+            task_plan = None
+            plan_critiques = []
+
+            # Try up to 3 times to get an acceptable plan
+            for attempt in range(1, 4):
+                self.logger.info(f"Task planning attempt {attempt}/3")
+
+                # Generate task plan
+                task_plan = self.task_reasoner.reason_and_break_down(query, full_context)
+
+                # Critique the plan
+                plan_critique = self.critique_engine.critique_task_plan(
+                    user_request=query,
+                    task_plan=task_plan,
+                    reasoning_context=full_context
+                )
+
+                plan_critiques.append(plan_critique)
+
+                # Decision: accept or retry?
+                decision = self.decision_maker.decide_on_task(
+                    critique=plan_critique,
+                    attempt_number=attempt,
+                    previous_critiques=plan_critiques[:-1]
+                )
+
+                if decision.should_proceed:
+                    self.logger.info(f"Task plan accepted (attempt {attempt}, score: {plan_critique.quality_score:.2f})")
+                    break
+                else:
+                    self.logger.warning(f"Task plan needs improvement (attempt {attempt})")
+
+                    # If not last attempt, incorporate feedback
+                    if attempt < 3:
+                        # Add improvement guidance to context
+                        improvement_context = f"\n\nPrevious plan issues:\n" + "\n".join(f"- {issue}" for issue in plan_critique.critical_issues + plan_critique.minor_issues)
+                        improvement_context += f"\n\nSuggestions:\n" + "\n".join(f"- {sug}" for sug in plan_critique.suggestions)
+
+                        full_context += improvement_context
+            else:
+                # Max attempts reached - proceed with best plan
+                self.logger.warning("Max planning attempts reached, proceeding with last plan")
 
             # Add tasks to progress tracker
             for task in task_plan.tasks:
@@ -219,7 +291,7 @@ class GeneralPurposeAgent(BaseAgent):
             return task_plan
 
     def _execute_with_critique(self, task_plan, workflow_id):
-        """Execute tasks with critique loops (max 3 attempts)."""
+        """Execute tasks with critique loops (max 3 attempts per task)."""
         with trace_context("execute_with_critique"):
             execution_results = {}
 
@@ -249,7 +321,7 @@ class GeneralPurposeAgent(BaseAgent):
                     decision = self.decision_maker.decide_on_task(
                         critique=critique,
                         attempt_number=attempt,
-                        previous_critiques=[]  # Could track history
+                        previous_critiques=[]
                     )
 
                     if decision.should_proceed:
@@ -288,7 +360,79 @@ class GeneralPurposeAgent(BaseAgent):
 
             return execution_results
 
-    def _synthesize_output(self, user_request, task_plan, execution_results):
+    def _synthesize_with_critique(
+        self,
+        user_request: str,
+        task_plan,
+        execution_results,
+        conversation_context: str,
+        workflow_id: str
+    ):
+        """
+        Synthesize final output WITH CRITIQUE LOOP.
+
+        Tries up to 3 times to create an acceptable final output.
+        """
+        with trace_context("synthesize_with_critique"):
+            self.logger.info("Synthesizing final output with critique")
+
+            final_output = None
+            synthesis_critiques = []
+
+            # Try up to 3 times
+            for attempt in range(1, 4):
+                self.logger.info(f"Synthesis attempt {attempt}/3")
+
+                # Synthesize output
+                final_output = self._synthesize_output(
+                    user_request,
+                    task_plan,
+                    execution_results,
+                    conversation_context
+                )
+
+                # Critique the final output
+                final_critique = self.critique_engine.critique_final_output(
+                    user_request=user_request,
+                    final_output=final_output,
+                    execution_context={
+                        "tasks_completed": len(execution_results),
+                        "conversation_context": conversation_context,
+                    }
+                )
+
+                synthesis_critiques.append(final_critique)
+
+                # Decision: accept or retry?
+                decision = self.decision_maker.decide_on_task(
+                    critique=final_critique,
+                    attempt_number=attempt,
+                    previous_critiques=synthesis_critiques[:-1]
+                )
+
+                if decision.should_proceed:
+                    self.logger.info(f"Final output accepted (attempt {attempt}, score: {final_critique.quality_score:.2f})")
+                    break
+                else:
+                    self.logger.warning(f"Final output needs improvement (attempt {attempt})")
+
+                    # If not last attempt, try again with feedback
+                    if attempt < 3:
+                        # For now, we'll just retry synthesis
+                        # Could add explicit improvement prompting here
+                        pass
+            else:
+                self.logger.warning("Max synthesis attempts reached, using last output")
+
+            return final_output
+
+    def _synthesize_output(
+        self,
+        user_request: str,
+        task_plan,
+        execution_results,
+        conversation_context: str
+    ):
         """Synthesize final output from task results."""
         with trace_context("synthesize_output"):
             # Collect results
@@ -304,11 +448,17 @@ class GeneralPurposeAgent(BaseAgent):
             prompt = f"""Synthesize a comprehensive response from the following task results.
 
 **User Request:** {user_request}
+"""
 
+            if conversation_context:
+                prompt += f"\n{conversation_context}\n"
+
+            prompt += f"""
 **Task Results:**
 {combined}
 
 Provide a clear, well-structured response that directly addresses the user's request.
+If this is a follow-up question, ensure your response builds on the previous conversation.
 """
 
             try:
@@ -329,3 +479,12 @@ Provide a clear, well-structured response that directly addresses the user's req
                 self.progress_callback(progress.to_dict())
             except Exception as e:
                 self.logger.warning(f"Progress callback failed: {e}")
+
+    def get_conversation_history(self):
+        """Get full conversation history."""
+        return self.conversation_manager.get_full_history()
+
+    def clear_conversation(self):
+        """Clear conversation history."""
+        self.conversation_manager.clear_history()
+        self.logger.info("Conversation history cleared")
