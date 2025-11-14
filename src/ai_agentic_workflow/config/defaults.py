@@ -166,6 +166,42 @@ def get_high_accuracy_config() -> OrchestratorConfig:
     )
 
 
+def get_free_tier_config() -> OrchestratorConfig:
+    """Get configuration optimized for free tier usage (zero cost)."""
+    return OrchestratorConfig(
+        model=ModelConfig(
+            # Use Gemini for orchestration (1,500 free requests/day)
+            orchestrator_provider=ModelProvider.GOOGLE,
+            orchestrator_model="gemini-1.5-pro",
+            orchestrator_temperature=0.7,
+
+            # Use Groq for planning (14,400 free requests/day!)
+            planner_provider=ModelProvider.GROQ,
+            planner_model="llama-3.1-70b-versatile",
+            planner_temperature=0.3,
+
+            # Use Groq for execution (very generous free tier)
+            executor_provider=ModelProvider.GROQ,
+            executor_model="llama-3.1-70b-versatile",
+            executor_temperature=0.5,
+        ),
+        confidence=ConfidenceConfig(
+            min_confidence_threshold=0.75,
+            max_clarification_rounds=3,
+        ),
+        execution=ExecutionConfig(
+            strategy=ExecutionStrategy.GREEDY,
+            max_retries=3,
+            validate_results=True,
+        ),
+        logging=LoggingConfig(
+            log_level="INFO",
+            structured_logging=False,
+            enable_tracing=True,
+        ),
+    )
+
+
 def get_config_by_name(name: str) -> OrchestratorConfig:
     """
     Get configuration by name.
@@ -177,6 +213,7 @@ def get_config_by_name(name: str) -> OrchestratorConfig:
             - "local": LM Studio local testing
             - "fast": Optimized for speed
             - "accurate": Optimized for accuracy
+            - "free": Free tier only (Gemini + Groq)
 
     Returns:
         OrchestratorConfig instance.
@@ -190,6 +227,7 @@ def get_config_by_name(name: str) -> OrchestratorConfig:
         "local": get_local_lmstudio_config,
         "fast": get_fast_config,
         "accurate": get_high_accuracy_config,
+        "free": get_free_tier_config,
     }
 
     if name not in configs:

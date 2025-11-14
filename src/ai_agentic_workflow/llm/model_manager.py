@@ -18,6 +18,8 @@ from .providers.base_provider import (
 from .providers.openai_provider import OpenAIProvider
 from .providers.anthropic_provider import AnthropicProvider
 from .providers.lmstudio_provider import LMStudioProvider
+from .providers.groq_provider import GroqProvider
+from .providers.gemini_provider import GeminiProvider
 
 
 class ModelManagerError(Exception):
@@ -106,14 +108,17 @@ class ModelManager:
                     timeout=self.config.timeout,
                 )
             elif provider_name == ModelProvider.GOOGLE:
-                # TODO: Implement Google provider
-                raise ModelManagerError(f"Google provider not yet implemented")
+                provider = GeminiProvider(
+                    model=model,
+                    api_key=self.config.google_api_key,
+                    temperature=temperature,
+                    max_tokens=self.config.max_tokens,
+                    timeout=self.config.timeout,
+                )
             elif provider_name == ModelProvider.GROQ:
-                # Groq uses OpenAI-compatible API
-                provider = OpenAIProvider(
+                provider = GroqProvider(
                     model=model,
                     api_key=self.config.groq_api_key,
-                    base_url="https://api.groq.com/openai/v1",
                     temperature=temperature,
                     max_tokens=self.config.max_tokens,
                     timeout=self.config.timeout,
