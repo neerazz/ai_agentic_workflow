@@ -6,12 +6,12 @@ Beautiful web-based chat interface with real-time progress tracking,
 conversation history, and critique loop visualization.
 """
 
-import sys
 import os
+import sys
 import time
-from typing import List, Tuple, Optional
+from typing import List
+
 import gradio as gr
-from datetime import datetime
 
 # Add src to path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
@@ -147,15 +147,21 @@ def initialize_agent(config_choice: str):
         return f"❌ Failed to initialize agent: {str(e)}"
 
 
-def chat_with_agent(message: str, history: List[Tuple[str, str]]):
+def chat_with_agent(message: str, history: List):
     """Process user message and return response."""
     global agent, current_progress
 
     if not agent:
-        return history + [(message, "❌ Please initialize the agent first using the Configuration panel.")], format_progress_display()
+        history.append({"role": "user", "content": message})
+        history.append(
+            {"role": "assistant", "content": "❌ Please initialize the agent first using the Configuration panel."})
+        return history, format_progress_display()
 
     if not message.strip():
         return history, format_progress_display()
+
+    # Add user message to history
+    history.append({"role": "user", "content": message})
 
     # Reset progress
     current_progress.update({
@@ -206,8 +212,8 @@ def chat_with_agent(message: str, history: List[Tuple[str, str]]):
                 'progress_percent': 0,
             })
 
-        # Update history
-        history = history + [(message, response)]
+        # Add assistant response to history
+        history.append({"role": "assistant", "content": response})
 
         return history, format_progress_display()
 
@@ -217,7 +223,8 @@ def chat_with_agent(message: str, history: List[Tuple[str, str]]):
             'stage': 'Failed',
             'progress_percent': 0,
         })
-        return history + [(message, error_response)], format_progress_display()
+        history.append({"role": "assistant", "content": error_response})
+        return history, format_progress_display()
 
 
 def clear_conversation():
@@ -297,7 +304,7 @@ def create_ui():
                     label="💬 Conversation",
                     height=500,
                     show_label=True,
-                    bubble_full_width=False,
+                    type='messages',
                 )
 
                 with gr.Row():
