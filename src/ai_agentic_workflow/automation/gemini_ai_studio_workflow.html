@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simplified AI Video Workflow (Gemini AI Studio)</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 900px;
+            margin: 20px auto;
+            padding: 0 20px;
+            background-color: #f9f9f9;
+        }
+        h1, h2 {
+            color: #2c3e50;
+        }
+        .step {
+            background-color: #fff;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        .step.hidden { display: none; }
+        textarea {
+            width: 100%;
+            padding: 10px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+            margin-top: 10px;
+            box-sizing: border-box;
+            font-family: monospace;
+            font-size: 14px;
+        }
+        textarea[readonly] {
+            background-color: #f0f0f0;
+            cursor: copy;
+        }
+        input[type="text"], input[type="password"] {
+            width: 100%;
+            padding: 10px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+            margin-top: 10px;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #4285F4; /* Google Blue */
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-top: 10px;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #3367D6;
+        }
+        button:disabled {
+            background-color: #bdc3c7;
+            cursor: not-allowed;
+        }
+        label {
+            font-weight: bold;
+            display: block;
+            margin-top: 15px;
+        }
+        .instructions, .warning {
+            border-left: 4px solid;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+        }
+        .instructions { background-color: #e8f0fe; border-color: #4285F4; }
+        .warning { background-color: #fef7e0; border-color: #f9ab00; }
+
+        #asset-generation-progress { margin-top: 20px; }
+        .asset-item { display: flex; justify-content: space-between; align-items: center; padding: 8px; border-bottom: 1px solid #eee; }
+        .asset-item:last-child { border-bottom: none; }
+        .asset-status { font-style: italic; color: #7f8c8d; }
+        .asset-download a { color: #34A853; text-decoration: none; font-weight: bold; }
+        .asset-download a:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+
+    <h1>Simplified AI Video Workflow</h1>
+    <p>Using Gemini AI Studio Prompts & Google Cloud APIs</p>
+
+    <div class="warning">
+        <p><strong>Security Warning:</strong> Your API credentials will be stored in this page's memory. This is safe for local use, but do NOT share this file or host it on a public website.</p>
+    </div>
+    <div class="instructions">
+        <h4>Setup: Get Your Google Cloud Credentials</h4>
+        <ol>
+            <li>Make sure you have a Google Cloud Project with the "Vertex AI API" and "Text-to-Speech API" enabled.</li>
+            <li>Install the Google Cloud SDK (gcloud CLI) on your computer.</li>
+            <li>Log in to your account by running <code>gcloud auth application-default login</code> in your terminal.</li>
+            <li>Get your Project ID from the Google Cloud Console.</li>
+        </ol>
+    </div>
+
+    <!-- Step 0: Credentials -->
+    <div id="step-0" class="step">
+        <h2>Step 0: Credentials</h2>
+        <label for="gcp-project-id">Google Cloud Project ID:</label>
+        <input type="text" id="gcp-project-id" placeholder="e.g., my-gcp-project-12345">
+        <label for="gcp-region">Google Cloud Region:</label>
+        <input type="text" id="gcp-region" placeholder="e.g., us-central1">
+        <label for="gcp-api-key">Gemini API Key (for Text Prompts):</label>
+        <input type="password" id="gcp-api-key" placeholder="Paste your Google AI Studio API Key">
+        <button onclick="saveCredentials()">Save Credentials & Start</button>
+    </div>
+
+    <!-- Step 1: Story Generation -->
+    <div id="step-1" class="step hidden">
+        <h2>Step 1: Create The Story</h2>
+        <label for="story-idea">Enter your one-line video idea:</label>
+        <textarea id="story-idea" rows="2" placeholder="e.g., A wise old turtle teaches a hasty rabbit about the long journey of life."></textarea>
+        <button onclick="generatePrompt('story')">Generate Story Prompt</button>
+        <label for="prompt-story">Copy this prompt into Gemini AI Studio (or your preferred AI chat):</label>
+        <textarea id="prompt-story" rows="10" readonly></textarea>
+        <label for="response-story">Paste the generated story here:</label>
+        <textarea id="response-story" rows="10" placeholder="Paste the full story text from the AI..."></textarea>
+        <button onclick="nextStep(1)">Submit Story & Continue to Review</button>
+    </div>
+
+    <!-- Step 2: Story Review and Improvement -->
+    <div id="step-2" class="step hidden">
+        <h2>Step 2: Review and Improve the Story</h2>
+        <label for="prompt-story-review">Copy this prompt to get feedback on your story:</label>
+        <textarea id="prompt-story-review" rows="10" readonly></textarea>
+        <label for="response-story-review">Paste the reviewer's feedback here:</label>
+        <textarea id="response-story-review" rows="8" placeholder="Paste the review feedback from the AI..."></textarea>
+        <label for="response-story-improved">Now, manually improve the story using the feedback and paste the final version here:</label>
+        <textarea id="response-story-improved" rows="10" placeholder="Paste your new, improved story here..."></textarea>
+        <button onclick="nextStep(2)">Submit Improved Story</button>
+    </div>
+
+    <!-- Step 3: Director Script -->
+    <div id="step-3" class="step hidden">
+        <h2>Step 3: Create the Director's Script</h2>
+        <label for="prompt-director">Copy this prompt to break the story into scenes:</label>
+        <textarea id="prompt-director" rows="15" readonly></textarea>
+        <label for="response-director">Paste the Director's Script (JSON) here:</label>
+        <textarea id="response-director" rows="10" placeholder="Paste the JSON output from the AI..."></textarea>
+        <button onclick="nextStep(3)">Submit Script for Review</button>
+    </div>
+    
+    <!-- Step 4: Director Script Review and Enhancement -->
+    <div id="step-4" class="step hidden">
+        <h2>Step 4: Review and Enhance the Director's Script</h2>
+        <label for="prompt-director-review">Copy this prompt to get feedback on the script:</label>
+        <textarea id="prompt-director-review" rows="10" readonly></textarea>
+        <label for="response-director-review">Paste the script review feedback here:</label>
+        <textarea id="response-director-review" rows="8" placeholder="Paste the script review from the AI..."></textarea>
+        <label for="prompt-director-enhance">Now, use this prompt to get a final, enhanced script:</label>
+        <textarea id="prompt-director-enhance" rows="10" readonly></textarea>
+        <label for="response-director-final">Paste the FINAL enhanced Director's Script (JSON) here:</label>
+        <textarea id="response-director-final" rows="10" placeholder="Paste the final JSON script from the AI..."></textarea>
+        <button onclick="nextStep(4)">Finalize Script & Proceed to Asset Generation</button>
+    </div>
+
+    <!-- Step 5: Asset Generation -->
+    <div id="step-5" class="step hidden">
+        <h2>Step 5: Generate & Download Assets</h2>
+        <div class="instructions">
+            <p>Click the button below to generate all images and audio files. This will make multiple API calls to Google Cloud. Be patient, as this may take a few minutes.</p>
+            <p>Download links will appear as each asset is generated. Your browser will download them to your default 'Downloads' folder.</p>
+        </div>
+        <button id="generate-assets-btn" onclick="generateAssets()">Generate All Assets</button>
+        <div id="asset-generation-progress"></div>
+    </div>
+
+
+<script>
+// --- STATE MANAGEMENT ---
+const workflowState = {
+    gcpProjectId: '',
+    gcpApiKey: '',
+    gcpRegion: '',
+    storyIdea: '',
+    story: '',
+    storyReview: '',
+    improvedStory: '',
+    directorScript: '',
+    directorScriptReview: '',
+    finalDirectorScript: null
+};
+
+// --- PROMPT TEMPLATES ---
+const prompts = {
+    story: (idea) => `
+Write a captivating and emotionally resonant story for a short 3-4 minute video based on this idea: "${idea}".
+
+The story should be 500-700 words. It needs a clear beginning, a central conflict or lesson, and a satisfying, inspiring resolution. The tone should be wise and contemplative, suitable for an audience interested in personal growth and mindfulness.
+
+Please write only the story text.
+`,
+    storyReview: (story) => `
+You are a viral content strategist. Review the following story and provide feedback on how to make it more engaging, emotionally impactful, and shareable for a social media video format.
+
+STORY:
+---
+${story}
+---
+
+Provide your feedback in the following format:
+- **Strongest Elements:** What parts of the story work well and should be kept?
+- **Areas for Improvement:** What specific sections could be enhanced for better pacing or emotional connection?
+- **Viral Potential Score (1-10):** How likely is this story to resonate and be shared?
+- **Actionable Suggestions:** Provide 3-5 concrete suggestions to improve the story. For example, "In paragraph 2, add a more descriptive sentence about the character's feelings to build empathy."
+`,
+    director: (improvedStory) => `
+You are a film director. Transform the following story into a detailed scene-by-scene script for a 3-4 minute animated video.
+
+STORY:
+---
+${improvedStory}
+---
+
+Your output must be a single JSON object. Do not include any text or markdown formatting before or after the JSON.
+
+The JSON object should contain a key "scenes", which is an array of scene objects.
+Break the story into 8-12 scenes. Each scene object in the array must have these three keys:
+1. "scene_number": (Integer) The number of the scene.
+2. "narration": (String) The exact narrator script for this scene. This should be a portion of the original story text.
+3. "image_prompt": (String) A detailed, descriptive prompt for an AI image generator (like Imagen) to create the visual for this scene. The prompt should describe characters, setting, mood, colors, and camera angle. Example: "An old, wise turtle with intricate patterns on its shell, sitting under a blooming cherry blossom tree. The mood is serene and peaceful, with soft morning light. Cinematic, detailed illustration, wide angle."
+
+Example of the required JSON format:
+{
+  "scenes": [
+    {
+      "scene_number": 1,
+      "narration": "In a lush, green meadow, lived a rabbit named Remy, who believed speed was the measure of all things.",
+      "image_prompt": "A vibrant, sun-drenched meadow with a small, energetic rabbit in mid-leap. The style is a warm, painterly illustration. The mood is energetic and cheerful. Close-up shot focusing on the rabbit's determined expression."
+    }
+  ]
+}
+`,
+    directorReview: (directorScript) => `
+You are a seasoned video producer. Review the following director's script (a JSON object with scenes, narration, and image prompts).
+
+DIRECTOR'S SCRIPT:
+---
+${directorScript}
+---
+
+Critique the script based on the following criteria:
+- **Pacing:** Does the scene breakdown create a good narrative flow for a 3-4 minute video?
+- **Visual-Narration Sync:** Do the image prompts effectively match the narration for each scene?
+- **Image Prompt Quality:** Are the image prompts detailed and inspiring enough to generate high-quality, emotionally resonant visuals?
+- **Clarity:** Is the narration for each scene concise and clear?
+
+Provide a summary of feedback with specific, actionable suggestions for improvement.
+`,
+    directorEnhance: (directorScript, directorReview) => `
+You are a film director who has just received feedback on your script. Your task is to revise the original script based on the producer's notes.
+
+ORIGINAL DIRECTOR'S SCRIPT (JSON):
+---
+${directorScript}
+---
+
+PRODUCER'S FEEDBACK:
+---
+${directorReview}
+---
+
+Incorporate the feedback to improve the script. Pay close attention to enhancing the image prompts and adjusting scene pacing if necessary.
+
+Your final output must be the complete, revised script as a single JSON object, following the exact same format as the original. Do not include any explanatory text.
+`
+};
+
+// --- UI & WORKFLOW LOGIC ---
+
+function saveCredentials() {
+    workflowState.gcpProjectId = document.getElementById('gcp-project-id').value.trim();
+    workflowState.gcpRegion = document.getElementById('gcp-region').value.trim();
+    workflowState.gcpApiKey = document.getElementById('gcp-api-key').value.trim();
+
+    if (!workflowState.gcpProjectId || !workflowState.gcpApiKey || !workflowState.gcpRegion) {
+        alert("Please fill in all credential fields.");
+        return;
+    }
+    document.getElementById('step-0').classList.add('hidden');
+    document.getElementById('step-1').classList.remove('hidden');
+}
+
+function generatePrompt(type) {
+    if (type === 'story') {
+        workflowState.storyIdea = document.getElementById('story-idea').value;
+        if (!workflowState.storyIdea.trim()) { alert("Please enter an idea."); return; }
+        document.getElementById('prompt-story').value = prompts.story(workflowState.storyIdea);
+    }
+}
+
+function nextStep(currentStep) {
+    const nextStepNum = currentStep + 1;
+    let isValid = true;
+
+    // Capture state and generate next prompt
+    switch(currentStep) {
+        case 1:
+            workflowState.story = document.getElementById('response-story').value;
+            if (!workflowState.story.trim()) { alert("Please paste the story."); isValid = false; break; }
+            document.getElementById('prompt-story-review').value = prompts.storyReview(workflowState.story);
+            break;
+        case 2:
+            workflowState.storyReview = document.getElementById('response-story-review').value;
+            workflowState.improvedStory = document.getElementById('response-story-improved').value;
+            if (!workflowState.improvedStory.trim()) { alert("Please paste the improved story."); isValid = false; break; }
+            document.getElementById('prompt-director').value = prompts.director(workflowState.improvedStory);
+            break;
+        case 3:
+            workflowState.directorScript = document.getElementById('response-director').value;
+             if (!workflowState.directorScript.trim()) { alert("Please paste the director script."); isValid = false; break; }
+            document.getElementById('prompt-director-review').value = prompts.directorReview(workflowState.directorScript);
+            break;
+        case 4:
+            workflowState.directorScriptReview = document.getElementById('response-director-review').value;
+            const finalScriptRaw = document.getElementById('response-director-final').value;
+            if (!finalScriptRaw.trim()) { alert("Please paste the final director script."); isValid = false; break; }
+            try {
+                workflowState.finalDirectorScript = JSON.parse(finalScriptRaw.match(/{[\s\S]*}/)[0]);
+            } catch (e) {
+                alert("The final director script is not valid JSON. Please check the format.");
+                isValid = false;
+            }
+            break;
+    }
+
+    if (isValid) {
+        document.getElementById(`step-${currentStep}`).classList.add('hidden');
+        document.getElementById(`step-${nextStepNum}`).classList.remove('hidden');
+    }
+}
+
+
+// --- ASSET GENERATION & API CALLS ---
+
+async function generateAssets() {
+    const generateBtn = document.getElementById('generate-assets-btn');
+    generateBtn.disabled = true;
+    generateBtn.textContent = 'Generating... Please Wait';
+
+    if (!workflowState.finalDirectorScript || !workflowState.finalDirectorScript.scenes) {
+        alert("Final director script not found or is invalid.");
+        generateBtn.disabled = false;
+        generateBtn.textContent = 'Generate All Assets';
+        return;
+    }
+
+    const progressDiv = document.getElementById('asset-generation-progress');
+    progressDiv.innerHTML = '<h3>Generation Progress</h3>';
+    
+    const scenes = workflowState.finalDirectorScript.scenes;
+    const allPromises = [];
+
+    for (const scene of scenes) {
+        // Add placeholders to UI
+        addAssetItem(`image-${scene.scene_number}`, `Image: Scene ${scene.scene_number}`);
+        addAssetItem(`audio-${scene.scene_number}`, `Audio: Scene ${scene.scene_number}`);
+        
+        // Push API call promises
+        allPromises.push(callImageAPI(scene));
+        allPromises.push(callAudioAPI(scene));
+    }
+    
+    await Promise.all(allPromises);
+    generateBtn.textContent = 'Generation Complete!';
+}
+
+async function callImageAPI(scene) {
+    const url = `https://${workflowState.gcpRegion}-aiplatform.googleapis.com/v1/projects/${workflowState.gcpProjectId}/locations/${workflowState.gcpRegion}/publishers/google/models/imagegeneration@006:predict`;
+    
+    // Add more detail to the prompt for better results
+    const fullPrompt = `${scene.image_prompt}, high detail, cinematic lighting, digital illustration, 16:9 aspect ratio`;
+
+    const body = {
+        instances: [{ prompt: fullPrompt }],
+        parameters: {
+            sampleCount: 1,
+            aspectRatio: "16:9",
+        }
+    };
+    
+    try {
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer $(gcloud auth application-default print-access-token)`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(body)
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error.message || `HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        const b64Json = data.predictions[0].bytesBase64Encoded;
+        const blob = b64toBlob(b64Json, 'image/png');
+        const downloadUrl = URL.createObjectURL(blob);
+        const fileName = `${String(scene.scene_number).padStart(2, '0')}_${scene.image_prompt.substring(0, 30).replace(/[^a-zA-Z0-9]/g, '_')}.png`;
+
+        updateAssetStatus(`image-${scene.scene_number}`, 'completed', downloadUrl, fileName);
+
+    } catch (error) {
+        console.error('Image API Error:', error);
+        updateAssetStatus(`image-${scene.scene_number}`, 'failed', null, null, error.message);
+    }
+}
+
+async function callAudioAPI(scene) {
+    const url = `https://texttospeech.googleapis.com/v1/text:synthesize?key=${workflowState.gcpApiKey}`;
+    
+    const body = {
+        input: { text: scene.narration },
+        voice: { languageCode: 'en-US', name: 'en-US-Studio-O' }, // A high-quality voice
+        audioConfig: { audioEncoding: 'MP3' }
+    };
+
+    try {
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error.message || `HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        const b64Json = data.audioContent;
+        const blob = b64toBlob(b64Json, 'audio/mp3');
+        const downloadUrl = URL.createObjectURL(blob);
+        const fileName = `${String(scene.scene_number).padStart(2, '0')}_${scene.narration.substring(0, 30).replace(/[^a-zA-Z0-9]/g, '_')}.mp3`;
+
+        updateAssetStatus(`audio-${scene.scene_number}`, 'completed', downloadUrl, fileName);
+
+    } catch (error) {
+        console.error('Audio API Error:', error);
+        updateAssetStatus(`audio-${scene.scene_number}`, 'failed', null, null, error.message);
+    }
+}
+
+// --- UTILITY FUNCTIONS ---
+
+function addAssetItem(id, name) {
+    const progressDiv = document.getElementById('asset-generation-progress');
+    const item = document.createElement('div');
+    item.className = 'asset-item';
+    item.id = `asset-${id}`;
+    item.innerHTML = `<span class="asset-name">${name}</span><span class="asset-status">Queued...</span><span class="asset-download"></span>`;
+    progressDiv.appendChild(item);
+}
+
+function updateAssetStatus(id, status, url = null, fileName = null, errorMsg = null) {
+    const item = document.getElementById(`asset-${id}`);
+    if (!item) return;
+    const statusEl = item.querySelector('.asset-status');
+    const downloadEl = item.querySelector('.asset-download');
+
+    switch (status) {
+        case 'completed':
+            statusEl.textContent = 'Completed';
+            statusEl.style.color = '#34A853';
+            downloadEl.innerHTML = `<a href="${url}" download="${fileName}">Download</a>`;
+            break;
+        case 'failed':
+            statusEl.textContent = `Failed: ${errorMsg || 'Unknown error'}`;
+            statusEl.style.color = '#EA4335';
+            break;
+    }
+}
+
+function b64toBlob(b64Data, contentType='', sliceSize=512) {
+    const byteCharacters = atob(b64Data);
+    const byteArrays = [];
+    for (let offset = 0; offset < byteCharacters.length; offset += sliceSize) {
+        const slice = byteCharacters.slice(offset, offset + sliceSize);
+        const byteNumbers = new Array(slice.length);
+        for (let i = 0; i < slice.length; i++) {
+            byteNumbers[i] = slice.charCodeAt(i);
+        }
+        const byteArray = new Uint8Array(byteNumbers);
+        byteArrays.push(byteArray);
+    }
+    return new Blob(byteArrays, {type: contentType});
+}
+
+</script>
+
+</body>
+</html>

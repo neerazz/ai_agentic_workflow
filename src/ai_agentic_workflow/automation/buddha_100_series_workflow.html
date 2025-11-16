@@ -1,0 +1,850 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Buddha 100 Video Series Workflow</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 900px;
+            margin: 20px auto;
+            padding: 0 20px;
+            background-color: #f9f9f9;
+        }
+        h1, h2 {
+            color: #2c3e50;
+        }
+        .step {
+            background-color: #fff;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        .step.active {
+            display: block;
+        }
+        .step.hidden {
+            display: none;
+        }
+        textarea {
+            width: 100%;
+            padding: 10px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+            margin-top: 10px;
+            box-sizing: border-box;
+            font-family: monospace;
+            font-size: 14px;
+        }
+        textarea[readonly] {
+            background-color: #f0f0f0;
+            cursor: copy;
+        }
+        button {
+            background-color: #3498db;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-top: 10px;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #2980b9;
+        }
+        button:disabled {
+            background-color: #bdc3c7;
+            cursor: not-allowed;
+        }
+        label {
+            font-weight: bold;
+            display: block;
+            margin-top: 15px;
+        }
+        .instructions {
+            background-color: #eaf5ff;
+            border-left: 4px solid #3498db;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+        }
+        #asset-generation-progress {
+            margin-top: 20px;
+        }
+        .asset-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px;
+            border-bottom: 1px solid #eee;
+        }
+        .asset-item:last-child {
+            border-bottom: none;
+        }
+        .asset-status {
+            font-style: italic;
+            color: #7f8c8d;
+        }
+        .asset-download a {
+            color: #27ae60;
+            text-decoration: none;
+            font-weight: bold;
+        }
+        .asset-download a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Buddha 100 Video Series Workflow</h1>
+
+    <div class="instructions">
+        <p><strong>Welcome!</strong> This page will guide you through creating a wisdom video. Follow these steps:</p>
+        <ol>
+            <li>For each step, copy the generated prompt from the "Prompt to copy" box.</li>
+            <li>Paste it into your preferred AI chat tool (e.g., ChatGPT, Gemini, Claude).</li>
+            <li>Copy the full response from the AI tool.</li>
+            <li>Paste the response into the "Paste response here" box.</li>
+            <li>Click "Submit and Continue" to proceed to the next step.</li>
+        </ol>
+        <p><strong>For Asset Generation:</strong> At the final step, you will need a local server running. Instructions are provided in that step.</p>
+    </div>
+
+    <!-- Step 0: Initial Idea -->
+    <div id="step-0" class="step active">
+        <h2>Step 0: Initial Idea</h2>
+        <p>Start by entering your initial idea for the video. This will be used to generate the first prompt.</p>
+        <label for="response-0">Initial Video Idea:</label>
+        <textarea id="response-0" rows="3" placeholder="e.g., A monk who waited 10 years to ask one question"></textarea>
+        <button onclick="nextStep(0)">Start Workflow</button>
+    </div>
+
+    <!-- Step 1: Creative Director -->
+    <div id="step-1" class="step hidden">
+        <h2>Step 1: Creative Director - Concept Enhancement</h2>
+        <p>Copy the prompt below and paste it into a powerful reasoning model like <strong>GPT-4</strong> or <strong>Claude 3 Opus</strong>.</p>
+        <label for="prompt-1">Prompt to copy:</label>
+        <textarea id="prompt-1" rows="15" readonly></textarea>
+        <label for="response-1">Paste JSON response here:</label>
+        <textarea id="response-1" rows="10" placeholder="Paste the JSON output from the AI here..."></textarea>
+        <button onclick="nextStep(1)">Submit and Continue</button>
+    </div>
+
+    <!-- Step 2: Story Writer -->
+    <div id="step-2" class="step hidden">
+        <h2>Step 2: Story Writer - Narrative Creation</h2>
+        <p>Use a creative model like <strong>Gemini Pro</strong> or <strong>Claude 3 Sonnet</strong> for this step.</p>
+        <label for="prompt-2">Prompt to copy:</label>
+        <textarea id="prompt-2" rows="15" readonly></textarea>
+        <label for="response-2">Paste story text here:</label>
+        <textarea id="response-2" rows="10" placeholder="Paste the full story text here..."></textarea>
+        <button onclick="nextStep(2)">Submit and Continue</button>
+    </div>
+
+    <!-- Step 3: Story Reviewer -->
+    <div id="step-3" class="step hidden">
+        <h2>Step 3: Story Reviewer - Story Quality Check</h2>
+        <p>Use a strong reasoning model like <strong>GPT-4</strong> for this critical review step.</p>
+        <label for="prompt-3">Prompt to copy:</label>
+        <textarea id="prompt-3" rows="15" readonly></textarea>
+        <label for="response-3">Paste JSON response here:</label>
+        <textarea id="response-3" rows="10" placeholder="Paste the JSON review from the AI here..."></textarea>
+        <button onclick="nextStep(3)">Submit and Continue</button>
+    </div>
+
+    <!-- Step 4: Story Enhancer -->
+    <div id="step-4" class="step hidden">
+        <h2>Step 4: Story Enhancer - Story Improvement</h2>
+        <p>A highly creative and nuanced model like <strong>Claude 3 Opus</strong> is recommended for enhancing the story.</p>
+        <label for="prompt-4">Prompt to copy:</label>
+        <textarea id="prompt-4" rows="15" readonly></textarea>
+        <label for="response-4">Paste enhanced story text here:</label>
+        <textarea id="response-4" rows="10" placeholder="Paste the enhanced story text here..."></textarea>
+        <button onclick="nextStep(4)">Submit and Continue</button>
+    </div>
+
+    <!-- Step 5: Script Writer -->
+    <div id="step-5" class="step hidden">
+        <h2>Step 5: Script Writer - Scene Breakdown</h2>
+        <p>Use a model good at following structured formats, like <strong>Gemini Pro</strong> or <strong>GPT-4 Turbo</strong>.</p>
+        <label for="prompt-5">Prompt to copy:</label>
+        <textarea id="prompt-5" rows="15" readonly></textarea>
+        <label for="response-5">Paste JSON response here:</label>
+        <textarea id="response-5" rows="10" placeholder="Paste the JSON script from the AI here..."></textarea>
+        <button onclick="nextStep(5)">Submit and Continue</button>
+    </div>
+
+    <!-- Step 6: Script Reviewer -->
+    <div id="step-6" class="step hidden">
+        <h2>Step 6: Script Reviewer - Script Quality Check</h2>
+        <p>Use a strong reasoning model like <strong>GPT-4 Turbo</strong> for this detailed script review.</p>
+        <label for="prompt-6">Prompt to copy:</label>
+        <textarea id="prompt-6" rows="15" readonly></textarea>
+        <label for="response-6">Paste JSON response here:</label>
+        <textarea id="response-6" rows="10" placeholder="Paste the JSON script review from the AI here..."></textarea>
+        <button onclick="nextStep(6)">Submit and Continue</button>
+    </div>
+
+    <!-- Step 7: Script Enhancer -->
+    <div id="step-7" class="step hidden">
+        <h2>Step 7: Script Enhancer - Script Improvement</h2>
+        <p>A model that can handle both creativity and structure is good here, like <strong>Gemini Pro</strong> or <strong>Claude 3 Sonnet</strong>.</p>
+        <label for="prompt-7">Prompt to copy:</label>
+        <textarea id="prompt-7" rows="15" readonly></textarea>
+        <label for="response-7">Paste enhanced JSON script here:</label>
+        <textarea id="response-7" rows="10" placeholder="Paste the final enhanced JSON script here..."></textarea>
+        <button onclick="nextStep(7)">Submit and Continue</button>
+    </div>
+
+    <!-- Step 8: Visual Director -->
+    <div id="step-8" class="step hidden">
+        <h2>Step 8: Visual Director - Image Generation Prompts</h2>
+        <p>This requires a model with strong visual imagination, like <strong>GPT-4 Turbo</strong>.</p>
+        <label for="prompt-8">Prompt to copy:</label>
+        <textarea id="prompt-8" rows="15" readonly></textarea>
+        <label for="response-8">Paste JSON response here:</label>
+        <textarea id="response-8" rows="10" placeholder="Paste the JSON with visual prompts here..."></textarea>
+        <button onclick="nextStep(8)">Submit and Continue</button>
+    </div>
+
+    <!-- Step 9: Sound Designer -->
+    <div id="step-9" class="step hidden">
+        <h2>Step 9: Sound Designer - Audio Script Creation</h2>
+        <p>A model with a good sense of mood and pacing like <strong>Claude 3 Sonnet</strong> is suitable.</p>
+        <label for="prompt-9">Prompt to copy:</label>
+        <textarea id="prompt-9" rows="15" readonly></textarea>
+        <label for="response-9">Paste JSON response here:</label>
+        <textarea id="response-9" rows="10" placeholder="Paste the JSON with audio scripts here..."></textarea>
+        <button onclick="nextStep(9)">Submit and Continue</button>
+    </div>
+
+    <!-- Step 10: Quality Controller -->
+    <div id="step-10" class="step hidden">
+        <h2>Step 10: Quality Controller - Content Validation</h2>
+        <p>Use a reliable and cost-effective model for this validation checklist. <strong>GPT-4</strong> or a fine-tuned smaller model would work.</p>
+        <label for="prompt-10">Prompt to copy:</label>
+        <textarea id="prompt-10" rows="15" readonly></textarea>
+        <label for="response-10">Paste JSON response here:</label>
+        <textarea id="response-10" rows="10" placeholder="Paste the JSON quality report here..."></textarea>
+        <button onclick="nextStep(10)">Submit and Continue</button>
+    </div>
+
+    <!-- Step 11: Producer -->
+    <div id="step-11" class="step hidden">
+        <h2>Step 11: Producer - YouTube Optimization</h2>
+        <p>Use a model with up-to-date knowledge of YouTube trends, like <strong>GPT-4</strong>.</p>
+        <label for="prompt-11">Prompt to copy:</label>
+        <textarea id="prompt-11" rows="15" readonly></textarea>
+        <label for="response-11">Paste JSON response here:</label>
+        <textarea id="response-11" rows="10" placeholder="Paste the JSON with YouTube metadata here..."></textarea>
+        <button onclick="nextStep(11)">Finish and Proceed to Asset Generation</button>
+    </div>
+
+    <!-- Step 12: Asset Generation -->
+    <div id="step-12" class="step hidden">
+        <h2>Step 12: Asset Generation</h2>
+        <div class="instructions">
+            <h4>Setup Instructions</h4>
+            <ol>
+                <li>Make sure you have Python installed on your system.</li>
+                <li>You should have a file named <code>asset_server.py</code> in the same directory as this HTML file.</li>
+                <li>Create a <code>.env</code> file in that directory with your API keys:
+                    <pre><code>OPENAI_API_KEY="your_openai_api_key"
+GEMINI_API_KEY="your_google_ai_api_key"</code></pre>
+                </li>
+                <li>Open a terminal or command prompt in that directory.</li>
+                <li>Run the server with the command: <code>python asset_server.py</code></li>
+                <li>Once the server is running, click the button below to generate all assets.</li>
+            </ol>
+        </div>
+        <button id="generate-assets-btn" onclick="generateAssets()">Generate All Assets</button>
+        <div id="asset-generation-progress"></div>
+    </div>
+
+
+<script>
+const workflowState = {};
+
+const prompts = {
+    1: (idea) => `
+You are enhancing this initial video idea: '${idea}'
+
+Create an enhanced concept for a 4-5 minute YouTube video similar to "Words of Wisdom Stories" that teaches life lessons through Buddhist tales, Zen stories, and wisdom parables for a general adult audience seeking personal growth.
+
+CONCEPT ENHANCEMENT CRITERIA:
+1. Transformational Value: Offer genuine life-changing insights
+2. Relatability Factor: Address common human struggles and challenges
+3. Wisdom Integration: Seamlessly blend ancient teachings with modern applications
+4. Emotional Resonance: Create concepts that touch hearts and minds
+5. Practical Application: Ensure viewers can implement lessons in daily life
+6. Universal Appeal: Transcend cultural and religious boundaries
+
+VIDEO STRUCTURE FOR 4-5 MINUTES:
+- Opening Hook (30 seconds): Compelling question or scenario
+- Story Setup (45 seconds): Character introduction and situation
+- Core Narrative (2.5-3 minutes): Main story with wisdom teaching
+- Lesson Application (45-60 seconds): How to apply this wisdom today
+- Closing Inspiration (30 seconds): Motivational conclusion and call to reflection
+
+OUTPUT FORMAT as JSON:
+{{
+    "enhanced_title": "transformation-focused title",
+    "core_wisdom_teaching": "the main lesson",
+    "target_life_challenge": "specific problem addressed",
+    "story_framework": "Buddhist/Zen/Wisdom tale type",
+    "modern_applications": ["example1", "example2"],
+    "emotional_journey": "arc from struggle to transformation",
+    "key_takeaway": "memorable closing message"
+}}
+IMPORTANT: Your entire response must be ONLY the JSON object, without any introductory text, comments, or markdown formatting like \`\`\`json.
+`,
+    2: (enhancedConcept) => `
+Based on the enhanced concept below, write a complete wisdom-based story.
+
+ENHANCED CONCEPT:
+${JSON.stringify(enhancedConcept, null, 2)}
+
+STORY REQUIREMENTS:
+- Length: 600-800 words (suitable for 4-5 minute videos)
+- Language: Simple, profound, and conversational
+- Structure: Classical wisdom tale format with modern relevance
+- Characters: Archetypal figures (wise masters, seekers, kings, merchants, etc.)
+- Setting: Timeless environments that support the wisdom teaching
+
+STORYTELLING ELEMENTS TO INCLUDE:
+1. Universal human struggles that viewers can relate to
+2. Profound yet simple wisdom that transforms perspective
+3. Metaphorical elements that deepen understanding
+4. Emotional moments that create lasting impact
+5. Clear cause-and-effect relationships showing consequences of choices
+6. Practical wisdom that can be applied immediately
+
+STORY STRUCTURE TEMPLATE FOR 4-5 MINUTES:
+1. OPENING HOOK (30 seconds): Intriguing question or compelling scenario
+2. CHARACTER INTRODUCTION (45 seconds): Introduce protagonist facing a challenge
+3. CONFLICT DEVELOPMENT (60 seconds): Explore the struggle and its impact
+4. WISDOM ENCOUNTER (90-120 seconds): Meeting with wise figure or learning moment
+5. TRANSFORMATION (60 seconds): Character applies wisdom and experiences change
+6. RESOLUTION & LESSON (45 seconds): Clear outcome and wisdom teaching
+7. MODERN APPLICATION (30 seconds): How this applies to viewers' lives
+
+Write the complete narrative story following these guidelines.
+`,
+    3: (story) => `
+Review the wisdom story below for quality, authenticity, and inspirational impact.
+
+STORY:
+${story}
+
+REVIEW CRITERIA:
+1. **Wisdom Authenticity**: Is the wisdom teaching accurate and respectfully presented?
+2. **Emotional Journey**: Does the story create a compelling emotional arc?
+3. **Character Development**: Are characters relatable and their transformation believable?
+4. **Narrative Flow**: Does the story flow smoothly for narration?
+5. **Universal Appeal**: Will this resonate with a broad adult audience?
+6. **Practical Value**: Can viewers apply this wisdom in their lives?
+7. **Cultural Sensitivity**: Is the content respectful of all traditions?
+8. **Length & Pacing**: Is it appropriate for a 4-5 minute video?
+
+Provide specific feedback for improvement in each area.
+
+OUTPUT FORMAT as JSON:
+{{
+    "overall_score": 0-100,
+    "wisdom_authenticity": {{"score": 0-10, "feedback": "specific comments"}},
+    "emotional_journey": {{"score": 0-10, "feedback": "specific comments"}},
+    "character_development": {{"score": 0-10, "feedback": "specific comments"}},
+    "narrative_flow": {{"score": 0-10, "feedback": "specific comments"}},
+    "universal_appeal": {{"score": 0-10, "feedback": "specific comments"}},
+    "practical_value": {{"score": 0-10, "feedback": "specific comments"}},
+    "cultural_sensitivity": {{"score": 0-10, "feedback": "specific comments"}},
+    "length_pacing": {{"score": 0-10, "feedback": "specific comments"}},
+    "specific_improvements": ["improvement1", "improvement2"],
+    "strong_points": ["strength1", "strength2"]
+}}
+IMPORTANT: Your entire response must be ONLY the JSON object, without any introductory text, comments, or markdown formatting like \`\`\`json.
+`,
+    4: (story, review) => `
+Enhance the wisdom story below based on the reviewer's feedback, while maintaining its authentic voice.
+
+ORIGINAL STORY:
+${story}
+
+REVIEW FEEDBACK:
+${JSON.stringify(review, null, 2)}
+
+ENHANCEMENT GUIDELINES:
+- Address all specific improvements mentioned in the review
+- Strengthen areas with lower scores
+- Maintain the story's core wisdom teaching and emotional arc
+- Keep the 600-800 word length for 4-5 minute narration
+- Enhance but don't completely rewrite - preserve what works well
+- Ensure smooth, conversational flow for narration
+- Deepen emotional moments where suggested
+- Clarify wisdom teachings if needed
+- Improve character relatability
+
+Write the enhanced version of the story incorporating all feedback.
+`,
+    5: (enhancedStory) => `
+Transform the enhanced wisdom story below into a detailed scene-by-scene script optimized for a 4-5 minute video.
+
+ENHANCED STORY:
+${enhancedStory}
+
+SCRIPT CONVERSION GUIDELINES:
+- Break stories into 12-15 scenes for 4-5 minute videos
+- Include 30-second opening hook and 30-second closing inspiration
+- Write in conversational, narrator-friendly language
+- Add timing cues for pacing and emphasis
+- Include background music and sound effect cues
+- Specify visual descriptions for each scene
+
+SCENE STRUCTURE FORMAT:
+**SCENE [NUMBER]: [TITLE]**
+- **Duration:** [X seconds]
+- **Visual:** [Detailed scene description for animation/illustration]
+- **Narration:** [Exact words for voice-over]
+- **Music:** [Background music mood and timing]
+- **Sound Effects:** [Specific audio enhancements]
+- **Emphasis:** [Words or phrases to stress]
+- **Transition:** [How scene flows to next]
+
+OUTPUT FORMAT as JSON:
+{{
+    "total_duration_seconds": "calculated total",
+    "scenes": [
+        {{
+            "scene_number": 1,
+            "title": "scene title",
+            "duration_seconds": 30,
+            "visual_description": "what viewers see",
+            "narration": "exact narrator text",
+            "music": "background music description",
+            "sound_effects": ["effect1", "effect2"],
+            "emphasis_words": ["key", "words"],
+            "transition": "fade/cut/etc"
+        }}
+    ]
+}}
+IMPORTANT: Your entire response must be ONLY the JSON object, without any introductory text, comments, or markdown formatting like \`\`\`json.
+`,
+    6: (script) => `
+Review the video script below for production quality, pacing, and viewer engagement.
+
+SCRIPT:
+${JSON.stringify(script, null, 2)}
+
+SCRIPT REVIEW CRITERIA:
+1. **Opening Hook**: Does it grab attention in the first 15 seconds?
+2. **Scene Flow**: Do scenes transition smoothly?
+3. **Visual Potential**: Can each scene be effectively visualized?
+4. **Narration Quality**: Is the language natural and engaging?
+5. **Pacing**: Does timing work for a 4-5 minute video?
+6. **Emotional Beats**: Are key emotional moments properly emphasized?
+7. **Sound Design**: Are audio cues appropriate and effective?
+8. **Closing Impact**: Does it end with inspiration and a clear takeaway?
+
+OUTPUT FORMAT as JSON:
+{{
+    "overall_score": 0-100,
+    "opening_hook": {{"score": 0-10, "feedback": "specific comments"}},
+    "scene_flow": {{"score": 0-10, "feedback": "specific comments"}},
+    "visual_potential": {{"score": 0-10, "feedback": "specific comments"}},
+    "narration_quality": {{"score": 0-10, "feedback": "specific comments"}},
+    "pacing": {{"score": 0-10, "feedback": "specific comments"}},
+    "emotional_beats": {{"score": 0-10, "feedback": "specific comments"}},
+    "sound_design": {{"score": 0-10, "feedback": "specific comments"}},
+    "closing_impact": {{"score": 0-10, "feedback": "specific comments"}},
+    "scene_specific_feedback": {{"scene_X": "feedback"}},
+    "improvement_suggestions": ["suggestion1", "suggestion2"]
+}}
+IMPORTANT: Your entire response must be ONLY the JSON object, without any introductory text, comments, or markdown formatting like \`\`\`json.
+`,
+    7: (script, scriptReview) => `
+Enhance the video script below based on reviewer feedback for optimal production value.
+
+ORIGINAL SCRIPT:
+${JSON.stringify(script, null, 2)}
+
+SCRIPT REVIEW:
+${JSON.stringify(scriptReview, null, 2)}
+
+ENHANCEMENT FOCUS:
+- Strengthen the opening hook if needed
+- Improve scene transitions
+- Enhance visual descriptions
+- Refine narration for natural flow
+- Adjust timing for perfect pacing
+- Amplify emotional moments
+- Optimize sound design cues
+- Strengthen the closing impact
+
+Maintain the 4-5 minute total duration while incorporating all improvements.
+
+OUTPUT FORMAT: Same JSON structure as the original script with all enhancements applied.
+IMPORTANT: Your entire response must be ONLY the JSON object, without any introductory text, comments, or markdown formatting like \`\`\`json.
+`,
+    8: (enhancedScript) => `
+Create detailed image generation prompts for each scene in the enhanced script below.
+
+ENHANCED SCRIPT:
+${JSON.stringify(enhancedScript, null, 2)}
+
+VISUAL STYLE REQUIREMENTS:
+- Art style: Cinematic, contemplative illustrations with spiritual/philosophical depth
+- Color palette: Warm, earthy tones with strategic use of golden light and deep blues
+- Character design: Archetypal figures representing wisdom, seeking, and transformation
+- Environment: Serene, timeless settings that evoke peace and contemplation
+- Composition: Symbolic imagery that supports the wisdom teaching
+
+For each scene, create prompts following this structure:
+{{
+    "scene_number": "X",
+    "main_subject": "character or symbolic element with emotional state",
+    "setting": "environment that supports the wisdom theme",
+    "lighting": "mood lighting description",
+    "color_palette": "specific colors",
+    "symbolic_elements": ["element1", "element2"],
+    "composition": "camera angle and framing",
+    "mood": "overall feeling",
+    "style_modifiers": ["cinematic", "contemplative", "spiritual"],
+    "aspect_ratio": "16:9"
+}}
+
+OUTPUT FORMAT as JSON:
+{{
+    "visual_prompts": [/* array of prompt objects for each scene */]
+}}
+IMPORTANT: Your entire response must be ONLY the JSON object, without any introductory text, comments, or markdown formatting like \`\`\`json.
+`,
+    9: (enhancedScript) => `
+Create comprehensive audio scripts for the enhanced video scenes below.
+
+ENHANCED SCRIPT:
+${JSON.stringify(enhancedScript, null, 2)}
+
+AUDIO DESIGN PRINCIPLES:
+- Contemplative, peaceful soundscapes that support reflection
+- Subtle, non-intrusive background music that enhances without competing
+- Strategic use of silence for powerful moments
+- Natural sounds that evoke peace and connection to nature
+
+VOICE DIRECTION FOR NARRATION:
+- Tone: Warm, conversational, wise but approachable
+- Pace: Slower than conversational speech, allowing for absorption
+- Emphasis: Gentle stress on key wisdom points without being preachy
+- Emotion: Convey genuine care and understanding for human struggles
+- Pauses: Strategic silence for reflection and emotional impact
+
+For each scene, specify:
+{{
+    "scene_number": "X",
+    "narration_direction": {{
+        "tone": "emotional quality",
+        "pace": "speed guidance",
+        "emphasis_points": ["key phrases"],
+        "pause_locations": ["after X", "before Y"]
+    }},
+    "background_music": {{
+        "style": "musical style",
+        "intensity": "low/medium",
+        "instruments": ["piano", "strings"]
+    }},
+    "ambient_sounds": ["nature sounds", "environmental audio"],
+    "silence_moments": ["strategic pauses"]
+}}
+
+OUTPUT FORMAT as JSON:
+{{
+    "audio_scripts": [/* array of audio direction objects for each scene */]
+}}
+IMPORTANT: Your entire response must be ONLY the JSON object, without any introductory text, comments, or markdown formatting like \`\`\`json.
+`,
+    10: (story, script, visuals, audio) => `
+Validate all content below for quality, authenticity, and transformational impact.
+
+ENHANCED STORY:
+${story}
+
+ENHANCED SCRIPT:
+${JSON.stringify(script, null, 2)}
+
+VISUAL PROMPTS:
+${JSON.stringify(visuals, null, 2)}
+
+AUDIO SCRIPTS:
+${JSON.stringify(audio, null, 2)}
+
+VALIDATION CHECKLIST:
+1. Content Authenticity & Wisdom Accuracy
+2. Inspirational Value Assessment
+3. Cultural & Spiritual Sensitivity
+4. Emotional Impact Verification
+5. Technical Quality Standards
+6. Message Clarity & Practical Application
+7. Platform Optimization & Engagement
+
+Review all previous outputs and provide:
+
+OUTPUT FORMAT as JSON:
+{{
+    "approval_status": "APPROVED/NEEDS_REVISION",
+    "authenticity_check": {{"status": "PASS/FAIL", "notes": "details"}},
+    "inspirational_value": {{"status": "PASS/FAIL", "notes": "details"}},
+    "cultural_sensitivity": {{"status": "PASS/FAIL", "notes": "details"}},
+    "emotional_impact": {{"status": "PASS/FAIL", "notes": "details"}},
+    "technical_quality": {{"status": "PASS/FAIL", "notes": "details"}},
+    "message_clarity": {{"status": "PASS/FAIL", "notes": "details"}},
+    "revision_recommendations": ["specific improvements needed"],
+    "quality_score": 0-100
+}}
+IMPORTANT: Your entire response must be ONLY the JSON object, without any introductory text, comments, or markdown formatting like \`\`\`json.
+`,
+    11: (concept, story, report) => `
+Create optimized YouTube metadata based on the assets below. Before generating metadata, check the Quality Controller's report. If approval_status is "NEEDS_REVISION", return placeholder metadata and highlight required fixes.
+
+ENHANCED CONCEPT:
+${JSON.stringify(concept, null, 2)}
+
+ENHANCED STORY:
+${story}
+
+QUALITY REPORT:
+${JSON.stringify(report, null, 2)}
+
+OPTIMIZATION REQUIREMENTS:
+- Title: Transformation promise with wisdom authority (50-70 characters)
+- Description: Hook, value proposition, transformation promise
+- Tags: Mix of high, medium, and low competition keywords
+- Thumbnail: Compelling imagery with 2-4 power words
+
+TITLE TEMPLATES:
+- "This [Ancient Wisdom] Will Transform How You [Life Area] | [Story Type]"
+- "You'll Never [Negative Behavior] Again After This [Wisdom Source] Story"
+- "The [Character] Who [Action] | Life-Changing Lesson About [Theme]"
+
+OUTPUT FORMAT as JSON:
+{{
+    "title_options": ["title1", "title2", "title3"],
+    "description": "full YouTube description with timestamps",
+    "tags": ["tag1", "tag2"],
+    "thumbnail_concept": {{
+        "visual_elements": "description",
+        "text_overlay": "2-4 power words",
+        "color_scheme": "colors that grab attention"
+    }},
+    "publishing_schedule": {{
+        "best_time": "day and time",
+        "frequency": "posting schedule"
+    }},
+    "engagement_strategy": "community interaction plan"
+}}
+IMPORTANT: Your entire response must be ONLY the JSON object, without any introductory text, comments, or markdown formatting like \`\`\`json.
+`
+};
+
+function parseAIResponse(rawText) {
+    try {
+        // Attempt to find JSON within backticks or as the whole string
+        const jsonMatch = rawText.match(/```json\s*([\s\S]*?)\s*```|({[\s\S]*})/);
+        if (jsonMatch) {
+            // Use the first captured group that is not null
+            const jsonString = jsonMatch[1] || jsonMatch[2];
+            return JSON.parse(jsonString);
+        }
+        // If no JSON is found, return the raw text
+        return rawText.trim();
+    } catch (error) {
+        console.error("JSON parsing error:", error);
+        alert("Could not parse the JSON response. Please ensure it is valid JSON and try again.");
+        return null; // Indicate failure
+    }
+}
+
+
+function nextStep(currentStep) {
+    const responseEl = document.getElementById(`response-${currentStep}`);
+    const response = responseEl.value;
+
+    if (!response.trim()) {
+        alert("Please paste the response before continuing.");
+        return;
+    }
+    
+    let parsedResponse;
+    // Steps that expect JSON
+    if ([1, 3, 5, 6, 7, 8, 9, 10, 11].includes(currentStep)) {
+        parsedResponse = parseAIResponse(response);
+        if (parsedResponse === null) return; // Stop if parsing failed
+    } else {
+        parsedResponse = response;
+    }
+
+    workflowState[currentStep] = parsedResponse;
+    
+    const nextStepNum = currentStep + 1;
+    let promptText = '';
+
+    switch (nextStepNum) {
+        case 1:
+            workflowState.initialIdea = workflowState[0];
+            promptText = prompts[1](workflowState.initialIdea);
+            break;
+        case 2:
+            workflowState.enhancedConcept = workflowState[1];
+            promptText = prompts[2](workflowState.enhancedConcept);
+            break;
+        case 3:
+            workflowState.storyDraft = workflowState[2];
+            promptText = prompts[3](workflowState.storyDraft);
+            break;
+        case 4:
+            workflowState.storyReview = workflowState[3];
+            promptText = prompts[4](workflowState.storyDraft, workflowState.storyReview);
+            break;
+        case 5:
+            workflowState.enhancedStory = workflowState[4];
+            promptText = prompts[5](workflowState.enhancedStory);
+            break;
+        case 6:
+            workflowState.sceneBreakdown = workflowState[5];
+            promptText = prompts[6](workflowState.sceneBreakdown);
+            break;
+        case 7:
+            workflowState.scriptReview = workflowState[6];
+            promptText = prompts[7](workflowState.sceneBreakdown, workflowState.scriptReview);
+            break;
+        case 8:
+            workflowState.enhancedScript = workflowState[7];
+            promptText = prompts[8](workflowState.enhancedScript);
+            break;
+        case 9:
+            workflowState.visualPrompts = workflowState[8];
+            promptText = prompts[9](workflowState.enhancedScript);
+            break;
+        case 10:
+            workflowState.audioScripts = workflowState[9];
+            promptText = prompts[10](workflowState.enhancedStory, workflowState.enhancedScript, workflowState.visualPrompts, workflowState.audioScripts);
+            break;
+        case 11:
+            workflowState.qualityReport = workflowState[10];
+            promptText = prompts[11](workflowState.enhancedConcept, workflowState.enhancedStory, workflowState.qualityReport);
+            break;
+        case 12:
+            workflowState.youtubeMetadata = workflowState[11];
+            break;
+    }
+
+    if (nextStepNum <= 11) {
+        const promptEl = document.getElementById(`prompt-${nextStepNum}`);
+        promptEl.value = promptText.trim();
+    }
+    
+    document.getElementById(`step-${currentStep}`).classList.add('hidden');
+    document.getElementById(`step-${nextStepNum}`).classList.remove('hidden');
+}
+
+async function generateAssets() {
+    const generateBtn = document.getElementById('generate-assets-btn');
+    generateBtn.disabled = true;
+    generateBtn.textContent = 'Generating...';
+
+    const progressDiv = document.getElementById('asset-generation-progress');
+    progressDiv.innerHTML = '<h3>Generation Progress</h3>';
+
+    const visualPrompts = workflowState.visualPrompts?.visual_prompts || [];
+    const scenes = workflowState.enhancedScript?.scenes || [];
+
+    const assetPromises = [];
+
+    // Create image generation promises
+    visualPrompts.forEach(prompt => {
+        const sceneNum = prompt.scene_number;
+        const assetId = `image-${sceneNum}`;
+        addAssetItem(assetId, `Image for Scene ${sceneNum}`);
+        assetPromises.push(
+            fetch('http://localhost:8000/generate-image', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ scene_number: sceneNum, prompt: prompt })
+            })
+            .then(res => res.json())
+            .then(data => updateAssetStatus(assetId, data.url ? 'completed' : 'failed', data.url, data.error))
+            .catch(err => updateAssetStatus(assetId, 'failed', null, err.message))
+        );
+    });
+
+    // Create audio generation promises
+    scenes.forEach(scene => {
+        const sceneNum = scene.scene_number;
+        const narration = scene.narration;
+        const assetId = `audio-${sceneNum}`;
+        addAssetItem(assetId, `Audio for Scene ${sceneNum}`);
+        if (narration && narration.trim()) {
+            assetPromises.push(
+                fetch('http://localhost:8000/generate-audio', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ scene_number: sceneNum, text: narration })
+                })
+                .then(res => res.json())
+                .then(data => updateAssetStatus(assetId, data.url ? 'completed' : 'failed', data.url, data.error))
+                .catch(err => updateAssetStatus(assetId, 'failed', null, err.message))
+            );
+        } else {
+             updateAssetStatus(assetId, 'skipped');
+        }
+    });
+
+    await Promise.all(assetPromises);
+    generateBtn.textContent = 'Generation Complete';
+}
+
+function addAssetItem(id, name) {
+    const progressDiv = document.getElementById('asset-generation-progress');
+    const item = document.createElement('div');
+    item.className = 'asset-item';
+    item.id = `asset-${id}`;
+    item.innerHTML = `
+        <span class="asset-name">${name}</span>
+        <span class="asset-status">Generating...</span>
+        <span class="asset-download"></span>
+    `;
+    progressDiv.appendChild(item);
+}
+
+function updateAssetStatus(id, status, url = null, error = null) {
+    const item = document.getElementById(`asset-${id}`);
+    const statusEl = item.querySelector('.asset-status');
+    const downloadEl = item.querySelector('.asset-download');
+
+    switch (status) {
+        case 'completed':
+            statusEl.textContent = 'Completed';
+            statusEl.style.color = '#27ae60';
+            downloadEl.innerHTML = `<a href="${url}" target="_blank" download>Download</a>`;
+            break;
+        case 'failed':
+            statusEl.textContent = `Failed: ${error || 'Unknown error'}`;
+            statusEl.style.color = '#c0392b';
+            break;
+        case 'skipped':
+            statusEl.textContent = 'Skipped (no text)';
+            statusEl.style.color = '#7f8c8d';
+            break;
+    }
+}
+
+</script>
+
+</body>
+</html>
