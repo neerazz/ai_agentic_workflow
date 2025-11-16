@@ -116,12 +116,21 @@ python examples/blog_creation_agent_cli_enhanced.py \
   --persona "Developer Advocate" \
   --topic "Edge AI in manufacturing"
 
-# With LinkedIn data for persona extraction
+# With LinkedIn URL (automatically fetches and caches)
+python examples/blog_creation_agent_cli_enhanced.py \
+  --topic "Kubernetes best practices" \
+  --linkedin-url "https://www.linkedin.com/in/yourprofile"
+
+# With LinkedIn files (manual input)
 python examples/blog_creation_agent_cli_enhanced.py \
   --topic "Kubernetes best practices" \
   --linkedin-posts linkedin_posts.txt \
   --linkedin-profile linkedin_profile.txt \
   --resume resume.txt
+
+# Subsequent runs (automatically uses cached data)
+python examples/blog_creation_agent_cli_enhanced.py \
+  --topic "Microservices architecture"
 ```
 
 **📦 Python API**

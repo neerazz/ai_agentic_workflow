@@ -32,6 +32,7 @@ except ImportError:
     print("   Falling back to basic output...\n")
 
 from src.ai_agentic_workflow.agents import BlogCreationAgent, PersonaExtractor, PersonaMemory
+from src.ai_agentic_workflow.agents.linkedin_data_fetcher import LinkedInDataFetcher
 from src.ai_agentic_workflow.config import get_free_tier_blog_config
 
 
@@ -132,6 +133,11 @@ Examples:
 
     # LinkedIn/Resume data
     parser.add_argument(
+        "--linkedin-url",
+        type=str,
+        help="LinkedIn profile URL (will fetch and cache data automatically)"
+    )
+    parser.add_argument(
         "--linkedin-posts",
         type=str,
         help="Path to file containing LinkedIn posts (JSON array or one per line)"
@@ -150,6 +156,22 @@ Examples:
         "--persona-memory",
         type=str,
         help="Path to saved persona memory JSON file"
+    )
+    parser.add_argument(
+        "--refresh-posts",
+        action="store_true",
+        help="Refresh LinkedIn posts even if cached"
+    )
+    parser.add_argument(
+        "--refresh-all",
+        action="store_true",
+        help="Force refresh all LinkedIn data"
+    )
+    parser.add_argument(
+        "--cache-dir",
+        type=str,
+        default=".linkedin_cache",
+        help="Directory for LinkedIn data cache (default: .linkedin_cache)"
     )
 
     # Output options
@@ -216,13 +238,55 @@ Examples:
         print("Blog Creation Agent - Enhanced CLI")
         print("="*70)
 
-    # Load LinkedIn data if provided
+    # Load LinkedIn data (from URL, files, or cache)
     context = {}
-    if args.linkedin_posts or args.linkedin_profile or args.resume:
+    linkedin_fetcher = None
+    
+    if args.linkedin_url:
+        # Fetch from URL using Perplexity
         if console:
-            console.print("\n[cyan]Loading LinkedIn data...[/cyan]")
+            console.print("\n[cyan]Fetching LinkedIn data from URL...[/cyan]")
         else:
-            print("\nLoading LinkedIn data...")
+            print("\nFetching LinkedIn data from URL...")
+        
+        try:
+            linkedin_fetcher = LinkedInDataFetcher(cache_dir=args.cache_dir)
+            linkedin_data = linkedin_fetcher.fetch_linkedin_data(
+                profile_url=args.linkedin_url,
+                refresh=args.refresh_all,
+                refresh_posts=args.refresh_posts
+            )
+            context.update(linkedin_data)
+            
+            if linkedin_data:
+                if console:
+                    console.print(f"[green]✓[/green] Fetched LinkedIn data")
+                    if "linkedin_posts" in linkedin_data:
+                        console.print(f"  - Posts: {len(linkedin_data['linkedin_posts'])}")
+                    if "linkedin_profile" in linkedin_data:
+                        console.print(f"  - Profile: {len(linkedin_data['linkedin_profile'])} chars")
+                    if "resume" in linkedin_data:
+                        console.print(f"  - Resume: {len(linkedin_data['resume'])} chars")
+                    console.print(f"  - Cached in: {args.cache_dir}")
+                else:
+                    print(f"✓ Fetched LinkedIn data")
+            else:
+                if console:
+                    console.print("[yellow]⚠️  No LinkedIn data fetched. Check URL or API keys.[/yellow]")
+                else:
+                    print("⚠️  No LinkedIn data fetched. Check URL or API keys.")
+        except Exception as e:
+            if console:
+                console.print(f"[red]✗[/red] Error fetching LinkedIn data: {e}")
+            else:
+                print(f"✗ Error fetching LinkedIn data: {e}")
+    
+    elif args.linkedin_posts or args.linkedin_profile or args.resume:
+        # Load from files
+        if console:
+            console.print("\n[cyan]Loading LinkedIn data from files...[/cyan]")
+        else:
+            print("\nLoading LinkedIn data from files...")
         
         linkedin_data = load_linkedin_data(
             args.linkedin_posts,
@@ -242,6 +306,23 @@ Examples:
                     console.print(f"  - Resume: {len(linkedin_data['resume'])} chars")
             else:
                 print(f"✓ Loaded LinkedIn data")
+    else:
+        # Try to load from cache (most recent)
+        if not linkedin_fetcher:
+            linkedin_fetcher = LinkedInDataFetcher(cache_dir=args.cache_dir)
+        
+        cached_data = linkedin_fetcher.get_cached_data()
+        if cached_data:
+            context.update(cached_data)
+            if console:
+                console.print(f"[green]✓[/green] Using cached LinkedIn data")
+                cached_profiles = linkedin_fetcher.list_cached_profiles()
+                if cached_profiles:
+                    latest = cached_profiles[0]
+                    console.print(f"  - Profile: {latest['url']}")
+                    console.print(f"  - Last fetched: {latest.get('last_fetched', 'Unknown')}")
+            else:
+                print(f"✓ Using cached LinkedIn data")
 
     # Load persona memory if provided
     if args.persona_memory:
