@@ -5,6 +5,7 @@ langchain_google_genai
 langchain_community
 anthropic
 google-generativeai
+groq
 perplexity-client
 python-dotenv
 playwright
@@ -14,3 +15,5 @@ notion-client
 langchain_ollama
 crewai
 crewai[tools]
+rich
+gradio
