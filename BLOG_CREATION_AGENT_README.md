@@ -115,6 +115,13 @@ python examples/blog_creation_agent_gradio.py
 python examples/blog_creation_agent_cli_enhanced.py \
   --persona "Developer Advocate" \
   --topic "Edge AI in manufacturing"
+
+# With LinkedIn data for persona extraction
+python examples/blog_creation_agent_cli_enhanced.py \
+  --topic "Kubernetes best practices" \
+  --linkedin-posts linkedin_posts.txt \
+  --linkedin-profile linkedin_profile.txt \
+  --resume resume.txt
 ```
 
 **📦 Python API**
