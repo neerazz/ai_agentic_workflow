@@ -91,6 +91,77 @@ class BlogCreationAgent(BaseAgent):
             "critique_model": self.blog_config.critique_model,
         })
 
+    def _safe_json_parse(self, content: str, default: Any = {}) -> Any:
+        """
+        Safely parse JSON from LLM response with fallback.
+        
+        Args:
+            content: Response content from LLM
+            default: Default value if parsing fails
+            
+        Returns:
+            Parsed JSON or default value
+        """
+        try:
+            content = content.strip()
+            
+            # Remove markdown code blocks if present
+            if content.startswith("```"):
+                lines = content.split("\n")
+                # Remove first line (```json or ```) and last line (```)
+                if len(lines) > 2:
+                    content = "\n".join(lines[1:-1])
+                elif len(lines) == 2:
+                    content = lines[1]
+            
+            # Try direct parse
+            if content.startswith("{") or content.startswith("["):
+                return json.loads(content)
+            
+            # Try to find JSON object/array in content
+            import re
+            # Match JSON object
+            json_obj_pattern = r"\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}"
+            json_arr_pattern = r"\[[^\[\]]*(?:\[[^\[\]]*\][^\[\]]*)*\]"
+            
+            matches = re.findall(json_obj_pattern, content, re.DOTALL)
+            if not matches:
+                matches = re.findall(json_arr_pattern, content, re.DOTALL)
+            
+            if matches:
+                # Try to parse the largest match (likely most complete)
+                largest_match = max(matches, key=len)
+                return json.loads(largest_match)
+            
+            # Last resort: try to extract anything that looks like JSON
+            start_idx = content.find("{")
+            if start_idx == -1:
+                start_idx = content.find("[")
+            
+            if start_idx != -1:
+                # Find matching closing brace/bracket
+                bracket = content[start_idx]
+                close_bracket = "}" if bracket == "{" else "]"
+                depth = 0
+                for i in range(start_idx, len(content)):
+                    if content[i] == bracket:
+                        depth += 1
+                    elif content[i] == close_bracket:
+                        depth -= 1
+                        if depth == 0:
+                            return json.loads(content[start_idx:i+1])
+            
+            # If all else fails, return default
+            self.logger.warning(f"Could not parse JSON from content: {content[:200]}...")
+            return default
+            
+        except json.JSONDecodeError as e:
+            self.logger.warning(f"JSON decode error: {e}, content: {content[:200]}...")
+            return default
+        except Exception as e:
+            self.logger.warning(f"Error parsing JSON: {e}")
+            return default
+
     def execute(
         self,
         user_input: str,
@@ -172,16 +243,39 @@ If information is not provided, use null or empty values."""
 
         try:
             response = self.blog_model_manager.planner_generate(parse_prompt)
-            parsed = json.loads(response.content)
-            return BlogBrief(
-                persona=parsed.get("persona"),
-                topic=parsed.get("topic"),
-                goal=parsed.get("goal"),
-                voice=parsed.get("voice"),
-                target_audience=parsed.get("target_audience", []),
-                brand_pillars=parsed.get("brand_pillars", []),
-                user_input=user_input,
-            )
+            # Try to extract JSON from response
+            content = response.content.strip()
+            
+            # Remove markdown code blocks if present
+            if content.startswith("```"):
+                lines = content.split("\n")
+                content = "\n".join(lines[1:-1]) if len(lines) > 2 else content
+            
+            # Try to find JSON object
+            json_match = None
+            if content.startswith("{"):
+                json_match = content
+            else:
+                # Try to find JSON in the content
+                import re
+                json_pattern = r"\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}"
+                matches = re.findall(json_pattern, content, re.DOTALL)
+                if matches:
+                    json_match = matches[-1]  # Take the last (likely most complete) match
+            
+            if json_match:
+                parsed = json.loads(json_match)
+                return BlogBrief(
+                    persona=parsed.get("persona"),
+                    topic=parsed.get("topic"),
+                    goal=parsed.get("goal"),
+                    voice=parsed.get("voice"),
+                    target_audience=parsed.get("target_audience", []),
+                    brand_pillars=parsed.get("brand_pillars", []),
+                    user_input=user_input,
+                )
+            else:
+                raise ValueError("No JSON found in response")
         except Exception as e:
             self.logger.warning(f"Failed to parse input with LLM: {e}, using defaults")
             # Fallback: create brief with user input as topic
@@ -225,6 +319,15 @@ If information is not provided, use null or empty values."""
 
         # Stage 11: Outline Creation
         outline = self._weave_outline(brief, strategy, research_data, series_blueprint)
+        
+        # Ensure outline has sections
+        if "sections" not in outline or not outline.get("sections"):
+            self.logger.warning("Outline missing sections, creating default structure")
+            outline["sections"] = [
+                {"title": "Introduction", "objective": "Introduce the topic"},
+                {"title": "Main Content", "objective": "Deep dive into the topic"},
+                {"title": "Conclusion", "objective": "Wrap up and provide takeaways"}
+            ]
 
         # Stage 12: Section Enhancement
         enhanced_sections = self._enhance_sections(outline, research_data, audience_matrix)
@@ -279,8 +382,16 @@ Generate a persona sheet with:
 
 Return as JSON."""
 
-        response = self.blog_model_manager.planner_generate(prompt)
-        return json.loads(response.content)
+        try:
+            response = self.blog_model_manager.planner_generate(prompt)
+            return self._safe_json_parse(response.content, {})
+        except Exception as e:
+            self.logger.error(f"Error creating persona sheet: {e}")
+            return {
+                "tone": brief.voice or "Pragmatic mentor",
+                "persona": brief.persona or "Principal Software Engineer",
+                "goal": brief.goal or "Share technical knowledge"
+            }
 
     def _analyze_audience_trends(self, brief: BlogBrief, persona_sheet: Dict[str, Any]) -> Dict[str, Any]:
         """Stage 2: AudienceTrendRadar - Analyze audience trends."""
@@ -297,8 +408,12 @@ Identify:
 
 Return as JSON with per-cohort trend maps."""
 
-        response = self.blog_model_manager.planner_generate(prompt)
-        return json.loads(response.content)
+        try:
+            response = self.blog_model_manager.planner_generate(prompt)
+            return self._safe_json_parse(response.content, {})
+        except Exception as e:
+            self.logger.error(f"Error in stage: {e}")
+            return {}
 
     def _align_experience(self, brief: BlogBrief, persona_sheet: Dict[str, Any]) -> Dict[str, Any]:
         """Stage 3: ExperienceAligner - Align with authentic experience."""
@@ -315,8 +430,12 @@ Identify:
 
 Return as JSON."""
 
-        response = self.blog_model_manager.planner_generate(prompt)
-        return json.loads(response.content)
+        try:
+            response = self.blog_model_manager.planner_generate(prompt)
+            return self._safe_json_parse(response.content, {})
+        except Exception as e:
+            self.logger.error(f"Error in stage: {e}")
+            return {}
 
     def _plan_depth_guardrails(self, brief: BlogBrief, experience: Dict[str, Any]) -> Dict[str, Any]:
         """Stage 4: DepthCompass - Plan depth guardrails."""
@@ -336,8 +455,12 @@ Ensure interns don't drown while seniors get rigor.
 
 Return as JSON."""
 
-        response = self.blog_model_manager.planner_generate(prompt)
-        return json.loads(response.content)
+        try:
+            response = self.blog_model_manager.planner_generate(prompt)
+            return self._safe_json_parse(response.content, {})
+        except Exception as e:
+            self.logger.error(f"Error in stage: {e}")
+            return {}
 
     def _compose_strategy(self, brief: BlogBrief, persona_sheet: Dict[str, Any], trends: Dict[str, Any]) -> Dict[str, Any]:
         """Stage 5: StrategyComposer - Compose blog strategy."""
@@ -356,8 +479,12 @@ Define:
 
 Return as JSON."""
 
-        response = self.blog_model_manager.planner_generate(prompt)
-        return json.loads(response.content)
+        try:
+            response = self.blog_model_manager.planner_generate(prompt)
+            return self._safe_json_parse(response.content, {})
+        except Exception as e:
+            self.logger.error(f"Error in stage: {e}")
+            return {}
 
     def _build_audience_matrix(self, brief: BlogBrief, strategy: Dict[str, Any]) -> Dict[str, Any]:
         """Stage 6: AudienceLens - Build audience comprehension matrix."""
@@ -374,8 +501,12 @@ Create matrix with:
 
 Return as JSON."""
 
-        response = self.blog_model_manager.planner_generate(prompt)
-        return json.loads(response.content)
+        try:
+            response = self.blog_model_manager.planner_generate(prompt)
+            return self._safe_json_parse(response.content, {})
+        except Exception as e:
+            self.logger.error(f"Error in stage: {e}")
+            return {}
 
     def _route_topic(self, brief: BlogBrief, audience_matrix: Dict[str, Any], strategy: Dict[str, Any]) -> Dict[str, Any]:
         """Stage 7: TopicRouter - Route topic to appropriate audiences."""
@@ -391,8 +522,12 @@ Decide:
 
 Return as JSON."""
 
-        response = self.blog_model_manager.planner_generate(prompt)
-        return json.loads(response.content)
+        try:
+            response = self.blog_model_manager.planner_generate(prompt)
+            return self._safe_json_parse(response.content, {})
+        except Exception as e:
+            self.logger.error(f"Error in stage: {e}")
+            return {}
 
     def _plan_series(self, brief: BlogBrief, topic_decision: Dict[str, Any]) -> Dict[str, Any]:
         """Stage 8: BlogSeriesPlanner - Plan single vs multi-blog series."""
@@ -409,8 +544,12 @@ Decide:
 
 Return as JSON."""
 
-        response = self.blog_model_manager.planner_generate(prompt)
-        return json.loads(response.content)
+        try:
+            response = self.blog_model_manager.planner_generate(prompt)
+            return self._safe_json_parse(response.content, {})
+        except Exception as e:
+            self.logger.error(f"Error in stage: {e}")
+            return {}
 
     def _calibrate_innovation_balance(self, brief: BlogBrief, strategy: Dict[str, Any]) -> Dict[str, Any]:
         """Stage 9: TechLandscapeCalibrator - Calibrate innovation balance."""
@@ -427,8 +566,12 @@ Plan:
 
 Return as JSON."""
 
-        response = self.blog_model_manager.planner_generate(prompt)
-        return json.loads(response.content)
+        try:
+            response = self.blog_model_manager.planner_generate(prompt)
+            return self._safe_json_parse(response.content, {})
+        except Exception as e:
+            self.logger.error(f"Error in stage: {e}")
+            return {}
 
     def _conduct_research(self, brief: BlogBrief, strategy: Dict[str, Any], innovation_plan: Dict[str, Any]) -> Dict[str, Any]:
         """Stage 10: ResearchScout + FactSentinel - Conduct research."""
@@ -446,8 +589,12 @@ Gather:
 
 Return as JSON with fact cards."""
 
-        response = self.blog_model_manager.planner_generate(prompt)
-        return json.loads(response.content)
+        try:
+            response = self.blog_model_manager.planner_generate(prompt)
+            return self._safe_json_parse(response.content, {})
+        except Exception as e:
+            self.logger.error(f"Error in stage: {e}")
+            return {}
 
     def _weave_outline(self, brief: BlogBrief, strategy: Dict[str, Any], research: Dict[str, Any], series: Dict[str, Any]) -> Dict[str, Any]:
         """Stage 11: OutlineWeaver - Create blog outline."""
@@ -467,12 +614,20 @@ Create hierarchical outline with:
 
 Return as JSON."""
 
-        response = self.blog_model_manager.planner_generate(prompt)
-        return json.loads(response.content)
+        try:
+            response = self.blog_model_manager.planner_generate(prompt)
+            return self._safe_json_parse(response.content, {})
+        except Exception as e:
+            self.logger.error(f"Error in stage: {e}")
+            return {}
 
     def _enhance_sections(self, outline: Dict[str, Any], research: Dict[str, Any], audience_matrix: Dict[str, Any]) -> List[Dict[str, Any]]:
         """Stage 12: SectionEnhancer - Enhance each section."""
         sections = outline.get("sections", [])
+        if not sections:
+            self.logger.warning("No sections found in outline, creating default section")
+            sections = [{"title": "Introduction", "content": "Introduction to the topic"}]
+        
         enhanced = []
 
         for section in sections:
@@ -491,8 +646,13 @@ Add:
 
 Return enhanced section as JSON."""
 
-            response = self.blog_model_manager.planner_generate(prompt)
-            enhanced.append(json.loads(response.content))
+            try:
+                response = self.blog_model_manager.planner_generate(prompt)
+                enhanced_section = self._safe_json_parse(response.content, section)
+                enhanced.append(enhanced_section)
+            except Exception as e:
+                self.logger.warning(f"Error enhancing section: {e}, using original")
+                enhanced.append(section)
 
         return enhanced
 
@@ -531,13 +691,17 @@ Return critique scores and feedback as JSON."""
             # Default to planner provider
             provider = self.blog_config.model.planner_provider
         
-        response = self.blog_model_manager.generate_with_provider(
-            provider_name=provider,
-            model=self.blog_config.critique_model,
-            prompt=prompt,
-            temperature=0.3,
-        )
-        return json.loads(response.content)
+        try:
+            response = self.blog_model_manager.generate_with_provider(
+                provider_name=provider,
+                model=self.blog_config.critique_model,
+                prompt=prompt,
+                temperature=0.3,
+            )
+            return self._safe_json_parse(response.content, {"overall_score": 0, "feedback": "Critique parsing failed"})
+        except Exception as e:
+            self.logger.error(f"Error in critique: {e}")
+            return {"overall_score": 50, "feedback": f"Critique failed: {str(e)}"}
 
     def _gate_decision(self, critique: Dict[str, Any], sections: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """Stage 13: DecisionGater - Make accept/revise decisions."""
@@ -553,26 +717,44 @@ Return critique scores and feedback as JSON."""
 
     def _craft_draft(self, sections: List[Dict[str, Any]], persona_sheet: Dict[str, Any], strategy: Dict[str, Any]) -> str:
         """Stage 14: DraftCrafter - Write the blog draft."""
+        # Limit JSON size to avoid token limits
+        sections_summary = json.dumps(sections[:5]) if len(sections) > 5 else json.dumps(sections)
+        persona_summary = json.dumps({k: v for k, v in list(persona_sheet.items())[:5]})
+        strategy_summary = json.dumps({k: v for k, v in list(strategy.items())[:5]})
+        
         prompt = f"""Write the complete blog post.
 
-Sections: {json.dumps(sections)}
-Persona Sheet: {json.dumps(persona_sheet)}
-Strategy: {json.dumps(strategy)}
+Sections: {sections_summary}
+Persona Sheet: {persona_summary}
+Strategy: {strategy_summary}
 
 Write a complete, engaging blog post in markdown format.
 Target: 2000-3000 words.
 Include code examples, personal anecdotes, and clear explanations.
 Follow the persona voice and strategy."""
 
-        response = self.blog_model_manager.executor_generate(prompt, temperature=0.7)
-        return response.content
+        try:
+            response = self.blog_model_manager.executor_generate(prompt, temperature=0.7)
+            return response.content
+        except Exception as e:
+            self.logger.error(f"Error crafting draft: {e}")
+            # Fallback: create simple draft from sections
+            draft = "# Blog Post\n\n"
+            for section in sections:
+                draft += f"## {section.get('title', 'Section')}\n\n"
+                draft += f"{section.get('content', section.get('objective', ''))}\n\n"
+            return draft
 
     def _polish_voice(self, draft: str, persona_sheet: Dict[str, Any], brief: BlogBrief) -> str:
         """Stage 14: VoiceGuardian - Polish voice and style."""
+        # Limit draft preview to avoid token limits
+        draft_preview = draft[:2000] + "..." if len(draft) > 2000 else draft
+        persona_summary = json.dumps({k: v for k, v in list(persona_sheet.items())[:3]})
+        
         prompt = f"""Polish the blog post voice and style.
 
-Draft: {draft[:2000]}...
-Persona Sheet: {json.dumps(persona_sheet)}
+Draft: {draft_preview}
+Persona Sheet: {persona_summary}
 Voice: {brief.voice or "Pragmatic mentor"}
 
 Ensure:
@@ -584,8 +766,12 @@ Ensure:
 
 Return polished markdown."""
 
-        response = self.blog_model_manager.executor_generate(prompt, temperature=0.5)
-        return response.content
+        try:
+            response = self.blog_model_manager.executor_generate(prompt, temperature=0.5)
+            return response.content
+        except Exception as e:
+            self.logger.warning(f"Error polishing voice: {e}, returning original draft")
+            return draft
 
     def _orchestrate_seo(self, draft: str, brief: BlogBrief) -> Dict[str, Any]:
         """Stage 15: SEOOrchestrator - Optimize for SEO."""
@@ -604,8 +790,12 @@ Generate:
 
 Return as JSON."""
 
-        response = self.blog_model_manager.planner_generate(prompt)
-        return json.loads(response.content)
+        try:
+            response = self.blog_model_manager.planner_generate(prompt)
+            return self._safe_json_parse(response.content, {})
+        except Exception as e:
+            self.logger.error(f"Error in stage: {e}")
+            return {}
 
     def _track_brand_signals(self, draft: str, brief: BlogBrief, persona_sheet: Dict[str, Any]) -> Dict[str, Any]:
         """Stage 15: BrandSignalTracker - Track brand signals."""
@@ -625,8 +815,12 @@ Identify:
 
 Return as JSON."""
 
-        response = self.blog_model_manager.planner_generate(prompt)
-        return json.loads(response.content)
+        try:
+            response = self.blog_model_manager.planner_generate(prompt)
+            return self._safe_json_parse(response.content, {})
+        except Exception as e:
+            self.logger.error(f"Error in stage: {e}")
+            return {}
 
     def _create_visual_storyboard(self, outline: Dict[str, Any], sections: List[Dict[str, Any]], brief: BlogBrief) -> Dict[str, Any]:
         """Stage 16: VisualStoryboarder - Create visual storyboard."""
@@ -645,8 +839,12 @@ Plan:
 
 Return as JSON."""
 
-        response = self.blog_model_manager.planner_generate(prompt)
-        return json.loads(response.content)
+        try:
+            response = self.blog_model_manager.planner_generate(prompt)
+            return self._safe_json_parse(response.content, {})
+        except Exception as e:
+            self.logger.error(f"Error in stage: {e}")
+            return {}
 
     def _assemble_deliverable(
         self,
@@ -673,8 +871,12 @@ Generate:
 
 Return as JSON."""
 
-        promo_response = self.blog_model_manager.planner_generate(promo_prompt)
-        promo_bundle = json.loads(promo_response.content)
+        try:
+            promo_response = self.blog_model_manager.planner_generate(promo_prompt)
+            promo_bundle = self._safe_json_parse(promo_response.content, {})
+        except Exception as e:
+            self.logger.error(f"Error creating promo bundle: {e}")
+            promo_bundle = {}
 
         # Create knowledge transfer kit
         kit_prompt = f"""Create knowledge transfer kit.
@@ -690,8 +892,12 @@ Generate:
 
 Return as JSON."""
 
-        kit_response = self.blog_model_manager.planner_generate(kit_prompt)
-        knowledge_kit = json.loads(kit_response.content)
+        try:
+            kit_response = self.blog_model_manager.planner_generate(kit_prompt)
+            knowledge_kit = self._safe_json_parse(kit_response.content, {})
+        except Exception as e:
+            self.logger.error(f"Error creating knowledge kit: {e}")
+            knowledge_kit = {}
 
         # Calculate final quality score
         final_score = critique_result.get("overall_score", 0)
