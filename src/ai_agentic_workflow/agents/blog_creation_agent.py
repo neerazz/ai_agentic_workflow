@@ -12,6 +12,7 @@ from typing import Dict, Any, List, Optional
 from datetime import datetime
 
 from .base_agent import BaseAgent, AgentResult
+from .persona_extractor import PersonaExtractor, PersonaMemory
 from ..config import OrchestratorConfig
 from ..config.blog_agent_config import BlogAgentConfig, get_free_tier_blog_config
 from ..llm.model_manager import ModelManager
@@ -84,6 +85,12 @@ class BlogCreationAgent(BaseAgent):
 
         # Initialize specialized model manager for blog creation
         self.blog_model_manager = ModelManager(self.blog_config.model)
+        
+        # Initialize persona extractor
+        self.persona_extractor = PersonaExtractor(config=orchestrator_config)
+        
+        # Persona memory storage (efficient, reusable)
+        self.persona_memory: Optional[PersonaMemory] = None
 
         self.logger.info("BlogCreationAgent initialized", metadata={
             "planning_model": self.blog_config.planning_model,
@@ -172,7 +179,12 @@ class BlogCreationAgent(BaseAgent):
 
         Args:
             user_input: User's input (can be topic, persona, or free-form request).
-            context: Optional context with BlogBrief or other structured data.
+            context: Optional context with:
+                - BlogBrief: Structured brief
+                - linkedin_posts: List of LinkedIn post texts
+                - linkedin_profile: LinkedIn profile text
+                - resume: Optional resume text
+                - persona_memory: Optional pre-extracted PersonaMemory
 
         Returns:
             AgentResult with BlogDeliverable in output field.
@@ -182,10 +194,27 @@ class BlogCreationAgent(BaseAgent):
 
         try:
             with trace_context("blog_creation_execute"):
-                # Parse input into BlogBrief
+                # Step 1: Extract persona if LinkedIn data provided
+                if context and (context.get("linkedin_posts") or context.get("linkedin_profile")):
+                    self.logger.info("Extracting persona from LinkedIn data")
+                    persona_result = self.persona_extractor.execute("", context)
+                    if persona_result.success:
+                        self.persona_memory = persona_result.output
+                        self.logger.info("Persona extracted and stored", metadata={
+                            "expertise_areas": len(self.persona_memory.expertise_areas),
+                            "technical_skills": len(self.persona_memory.technical_skills),
+                        })
+                    else:
+                        self.logger.warning(f"Persona extraction failed: {persona_result.error}")
+                elif context and context.get("persona_memory"):
+                    # Use provided persona memory
+                    self.persona_memory = context["persona_memory"]
+                    self.logger.info("Using provided persona memory")
+                
+                # Step 2: Parse input into BlogBrief
                 brief = self._parse_input(user_input, context)
 
-                # Execute the blog creation pipeline
+                # Step 3: Execute the blog creation pipeline
                 deliverable = self._create_blog(brief)
 
                 return AgentResult(
@@ -195,6 +224,7 @@ class BlogCreationAgent(BaseAgent):
                         "brief": brief.__dict__,
                         "quality_score": deliverable.quality_report.get("final_score", 0),
                         "timestamp": datetime.now().isoformat(),
+                        "persona_used": self.persona_memory is not None,
                     }
                 )
 
@@ -365,8 +395,32 @@ If information is not provided, use null or empty values."""
 
     # Stage implementations (simplified for now, can be expanded)
     def _create_persona_sheet(self, brief: BlogBrief) -> Dict[str, Any]:
-        """Stage 1: PersonaArchitect - Create persona sheet."""
-        prompt = f"""Create a detailed persona sheet for a blog author.
+        """Stage 1: PersonaArchitect - Create persona sheet using stored persona memory."""
+        # Use efficient persona memory if available
+        if self.persona_memory:
+            persona_data = self.persona_memory.to_compact_dict()
+            prompt = f"""Create a detailed persona sheet for a blog author using extracted persona data.
+
+Extracted Persona Data:
+{json.dumps(persona_data, indent=2)}
+
+Additional Brief:
+- Goal: {brief.goal or "Share technical knowledge and mentor developers"}
+- Voice Override: {brief.voice or "Use extracted voice"}
+
+Generate a persona sheet with:
+- tone and style preferences (from extracted data)
+- north-star principles (from brand pillars)
+- mentorship cadence (from mentorship style)
+- brand guardrails (from brand pillars and values)
+- CTA preferences (from engagement patterns)
+- taboo claims to avoid
+
+Return as JSON."""
+
+        else:
+            # Fallback to brief-only persona
+            prompt = f"""Create a detailed persona sheet for a blog author.
 
 Persona: {brief.persona or "Principal Software Engineer"}
 Goal: {brief.goal or "Share technical knowledge and mentor developers"}
@@ -384,14 +438,28 @@ Return as JSON."""
 
         try:
             response = self.blog_model_manager.planner_generate(prompt)
-            return self._safe_json_parse(response.content, {})
+            persona_sheet = self._safe_json_parse(response.content, {})
+            
+            # Enhance with persona memory if available
+            if self.persona_memory:
+                persona_sheet.update({
+                    "extracted_voice": self.persona_memory.voice_summary,
+                    "extracted_expertise": self.persona_memory.expertise_summary,
+                    "common_phrases": self.persona_memory.common_phrases,
+                    "storytelling_patterns": self.persona_memory.storytelling_patterns,
+                })
+            
+            return persona_sheet
         except Exception as e:
             self.logger.error(f"Error creating persona sheet: {e}")
-            return {
+            fallback = {
                 "tone": brief.voice or "Pragmatic mentor",
                 "persona": brief.persona or "Principal Software Engineer",
                 "goal": brief.goal or "Share technical knowledge"
             }
+            if self.persona_memory:
+                fallback["extracted_voice"] = self.persona_memory.voice_summary
+            return fallback
 
     def _analyze_audience_trends(self, brief: BlogBrief, persona_sheet: Dict[str, Any]) -> Dict[str, Any]:
         """Stage 2: AudienceTrendRadar - Analyze audience trends."""
@@ -416,8 +484,34 @@ Return as JSON with per-cohort trend maps."""
             return {}
 
     def _align_experience(self, brief: BlogBrief, persona_sheet: Dict[str, Any]) -> Dict[str, Any]:
-        """Stage 3: ExperienceAligner - Align with authentic experience."""
-        prompt = f"""Align the blog topic with authentic principal engineer experience.
+        """Stage 3: ExperienceAligner - Align with authentic experience using persona memory."""
+        # Use persona memory for authentic experience alignment
+        if self.persona_memory:
+            experience_data = {
+                "expertise_summary": self.persona_memory.expertise_summary,
+                "story_bank_summary": self.persona_memory.story_bank_summary,
+                "career_highlights": self.persona_memory.career_highlights[:5],  # Top 5
+                "project_experiences": self.persona_memory.project_experiences[:5],  # Top 5
+                "technical_skills": dict(list(self.persona_memory.technical_skills.items())[:10]),  # Top 10
+            }
+            
+            prompt = f"""Align the blog topic with authentic experience from persona data.
+
+Topic: {brief.topic}
+Persona Experience Data:
+{json.dumps(experience_data, indent=2)}
+
+Identify:
+- Which career highlights/projects relate to this topic
+- Authentic battle-tested stories from story bank
+- Relevant technical skills and expertise
+- Unique point of view based on actual experience
+- Credibility markers from career highlights
+
+Return as JSON with specific references to persona data."""
+
+        else:
+            prompt = f"""Align the blog topic with authentic principal engineer experience.
 
 Topic: {brief.topic}
 Persona: {brief.persona}
@@ -657,12 +751,27 @@ Return enhanced section as JSON."""
         return enhanced
 
     def _critique_content(self, sections: List[Dict[str, Any]], brief: BlogBrief, persona_sheet: Dict[str, Any]) -> Dict[str, Any]:
-        """Stage 13: CritiqueCouncil - Critique content."""
-        prompt = f"""Critique blog sections for quality.
+        """Stage 13: CritiqueCouncil - Critique content using persona memory."""
+        # Use compact persona data for critique
+        sections_summary = json.dumps(sections[:3]) if len(sections) > 3 else json.dumps(sections)
+        persona_summary = json.dumps({k: v for k, v in list(persona_sheet.items())[:5]})
+        
+        persona_criteria = ""
+        if self.persona_memory:
+            persona_criteria = f"""
+Persona Voice Criteria:
+- Voice Summary: {self.persona_memory.voice_summary}
+- Expected Phrases: {', '.join(self.persona_memory.common_phrases[:5])}
+- Brand Pillars: {', '.join(self.persona_memory.brand_pillars)}
+- Mentorship Style: {self.persona_memory.mentorship_style}
+"""
+        
+        prompt = f"""Critique blog sections for quality and persona alignment.
 
-Sections: {json.dumps(sections)}
-Persona Sheet: {json.dumps(persona_sheet)}
-Brief: {json.dumps(brief.__dict__)}
+Sections: {sections_summary}
+Persona Sheet: {persona_summary}
+Brief: {json.dumps({k: v for k, v in brief.__dict__.items() if v})}
+{persona_criteria}
 
 Evaluate on:
 - Audience fit (25%)
@@ -671,6 +780,7 @@ Evaluate on:
 - Tech choice balance (15%)
 - Visual plan (10%)
 - Brand signal (10%)
+- Persona voice alignment (check against voice summary and expected phrases)
 
 Return critique scores and feedback as JSON."""
 
@@ -716,22 +826,35 @@ Return critique scores and feedback as JSON."""
             return sections  # For now, proceed with current sections
 
     def _craft_draft(self, sections: List[Dict[str, Any]], persona_sheet: Dict[str, Any], strategy: Dict[str, Any]) -> str:
-        """Stage 14: DraftCrafter - Write the blog draft."""
+        """Stage 14: DraftCrafter - Write the blog draft using persona memory."""
         # Limit JSON size to avoid token limits
         sections_summary = json.dumps(sections[:5]) if len(sections) > 5 else json.dumps(sections)
         persona_summary = json.dumps({k: v for k, v in list(persona_sheet.items())[:5]})
         strategy_summary = json.dumps({k: v for k, v in list(strategy.items())[:5]})
+        
+        # Include persona memory references efficiently
+        persona_guidance = ""
+        if self.persona_memory:
+            persona_guidance = f"""
+Persona Voice Summary: {self.persona_memory.voice_summary}
+Common Phrases to Use: {', '.join(self.persona_memory.common_phrases[:5])}
+Storytelling Patterns: {', '.join(self.persona_memory.storytelling_patterns[:3])}
+Available Stories: {self.persona_memory.story_bank_summary}
+"""
         
         prompt = f"""Write the complete blog post.
 
 Sections: {sections_summary}
 Persona Sheet: {persona_summary}
 Strategy: {strategy_summary}
+{persona_guidance}
 
 Write a complete, engaging blog post in markdown format.
 Target: 2000-3000 words.
 Include code examples, personal anecdotes, and clear explanations.
-Follow the persona voice and strategy."""
+Follow the persona voice and strategy.
+Use the persona voice summary and storytelling patterns to maintain authentic voice.
+Reference available stories from the story bank when relevant."""
 
         try:
             response = self.blog_model_manager.executor_generate(prompt, temperature=0.7)

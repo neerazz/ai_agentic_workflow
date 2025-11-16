@@ -13,6 +13,7 @@ from .conversation_manager import ConversationManager, ConversationTurn
 from .base_agent import BaseAgent
 from .general_purpose_agent import GeneralPurposeAgent
 from .blog_creation_agent import BlogCreationAgent, BlogBrief, BlogDeliverable
+from .persona_extractor import PersonaExtractor, PersonaMemory
 
 __all__ = [
     'CritiqueEngine',
@@ -32,4 +33,6 @@ __all__ = [
     'BlogCreationAgent',
     'BlogBrief',
     'BlogDeliverable',
+    'PersonaExtractor',
+    'PersonaMemory',
 ]
