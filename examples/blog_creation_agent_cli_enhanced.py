@@ -307,10 +307,37 @@ Examples:
             else:
                 print(f"✓ Loaded LinkedIn data")
     else:
-        # Try to load from cache (most recent)
+        # Try to load from cache (most recent) or default persona
         if not linkedin_fetcher:
             linkedin_fetcher = LinkedInDataFetcher(cache_dir=args.cache_dir)
         
+        # Check for default persona config
+        default_persona_file = None
+        try:
+            config_file = Path("persona_config.json")
+            if config_file.exists():
+                with open(config_file, 'r') as f:
+                    persona_config = json.load(f)
+                    default_persona_file = persona_config.get("default_persona_memory_file")
+        except:
+            pass
+        
+        # Try to load default persona memory first
+        if default_persona_file and Path(default_persona_file).exists():
+            try:
+                persona_memory = PersonaMemory.load(default_persona_file)
+                context["persona_memory"] = persona_memory
+                if console:
+                    console.print(f"[green]✓[/green] Using default persona: {default_persona_file}")
+                else:
+                    print(f"✓ Using default persona: {default_persona_file}")
+            except Exception as e:
+                if console:
+                    console.print(f"[yellow]⚠ Could not load default persona: {e}[/yellow]")
+                else:
+                    print(f"⚠ Could not load default persona: {e}")
+        
+        # Also try cached LinkedIn data
         cached_data = linkedin_fetcher.get_cached_data()
         if cached_data:
             context.update(cached_data)
