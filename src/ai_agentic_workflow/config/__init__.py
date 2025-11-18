@@ -15,6 +15,7 @@ from .orchestrator_config import (
     ExecutionStrategy,
 )
 from .defaults import get_default_config, get_config_by_name, get_free_tier_config
+from .blog_agent_config import BlogAgentConfig, get_free_tier_blog_config
 
 __all__ = [
     'OrchestratorConfig',
@@ -27,4 +28,6 @@ __all__ = [
     'get_default_config',
     'get_config_by_name',
     'get_free_tier_config',
+    'BlogAgentConfig',
+    'get_free_tier_blog_config',
 ]

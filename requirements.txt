@@ -17,3 +17,4 @@ crewai
 crewai[tools]
 rich
 gradio
+# Optional but recommended for enhanced CLI

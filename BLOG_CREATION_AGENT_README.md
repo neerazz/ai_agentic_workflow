@@ -115,28 +115,50 @@ python examples/blog_creation_agent_gradio.py
 python examples/blog_creation_agent_cli_enhanced.py \
   --persona "Developer Advocate" \
   --topic "Edge AI in manufacturing"
+
+# With LinkedIn URL (automatically fetches and caches)
+python examples/blog_creation_agent_cli_enhanced.py \
+  --topic "Kubernetes best practices" \
+  --linkedin-url "https://www.linkedin.com/in/yourprofile"
+
+# With LinkedIn files (manual input)
+python examples/blog_creation_agent_cli_enhanced.py \
+  --topic "Kubernetes best practices" \
+  --linkedin-posts linkedin_posts.txt \
+  --linkedin-profile linkedin_profile.txt \
+  --resume resume.txt
+
+# Subsequent runs (automatically uses cached data)
+python examples/blog_creation_agent_cli_enhanced.py \
+  --topic "Microservices architecture"
 ```
 
 **📦 Python API**
 ```python
-from ai_agentic_workflow.agents import BlogCreationAgent
-from ai_agentic_workflow.config import get_free_tier_config
+from src.ai_agentic_workflow.agents import BlogCreationAgent, BlogBrief
+from src.ai_agentic_workflow.config import get_free_tier_blog_config
 
-config = get_free_tier_config()
-agent = BlogCreationAgent(config)
+# Initialize agent
+config = get_free_tier_blog_config()
+agent = BlogCreationAgent(config=config)
 
-brief = {
-    "persona": "SaaS Growth Marketer",
-    "goal": "Generate demo requests",
-    "voice": "Optimistic, data-backed, witty",
-    "topic": "How to build zero-party data flywheels"
-}
+# Option 1: Simple user input
+result = agent.execute("Write a blog about Kubernetes best practices")
 
-result = agent.execute(brief)
+# Option 2: Structured brief
+brief = BlogBrief(
+    persona="Principal Software Engineer",
+    topic="Microservices architecture patterns",
+    goal="Teach best practices",
+    voice="Pragmatic mentor, data-backed",
+    target_audience=["junior", "mid", "senior"]
+)
+result = agent.execute("", context={"brief": brief})
 
 if result.success:
-    print(result.output.packaged_post)
-    print(result.metadata["quality_report"]["final_score"])
+    deliverable = result.output
+    print(deliverable.packaged_post)
+    print(f"Quality Score: {deliverable.quality_report['final_score']}/100")
 ```
 
 See `UI_GUIDE.md` for UI tips and persona template screenshots.
