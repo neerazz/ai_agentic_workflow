@@ -1,0 +1,938 @@
+{
+  "name": "EB1-A Autonomous Research Agent System",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "f774c4a8-f6db-43e9-a73c-f5d96eddd2b8",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        220,
+        0
+      ],
+      "id": "93652de4-872d-41d6-b9e4-0daf60d75371",
+      "name": "When chat message received",
+      "webhookId": "33457c51-adde-4ed3-8f06-13d66d7df6b7"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2,
+      "position": [
+        380,
+        -240
+      ],
+      "id": "7c5c2bb3-d04d-41d5-b3c6-38d426cf8de8",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4.1-mini"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        380,
+        220
+      ],
+      "id": "61b8328a-4700-4c54-b9bc-480dc507dd6a",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "e7N17UApuhGLzlq0",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Loop over input items and add a new field called 'myNewField' to the JSON of each one\nfor (const item of $input.all()) {\n// ORCHESTRATOR: Analyzes user profile and determines which research modules to activate\nconst userProfile = $input.all()[0].json;\n\n// Define research modules needed for EB1-A case\nconst researchModules = [\n  { name: 'AwardsModule', priority: 'high', description: 'Research major awards and recognitions' },\n  { name: 'JudgingModule', priority: 'high', description: 'Identify judging experience in field' },\n  { name: 'ScholarlyArticlesModule', priority: 'high', description: 'Find scholarly publications' },\n  { name: 'LeadingRoleModule', priority: 'high', description: 'Document leadership positions' },\n  { name: 'PublishedMaterialModule', priority: 'medium', description: 'Locate published materials and media' },\n  { name: 'OriginalContributionsModule', priority: 'high', description: 'Identify original contributions to field' },\n  { name: 'CriticalCapacityModule', priority: 'medium', description: 'Find critical/essential roles' },\n  { name: 'HighRemunerationModule', priority: 'low', description: 'Document high compensation' }\n];\n\n// Agent Analysis: Determine specialized agents needed\nconst specializedAgents = [\n  { role: 'TrendSpotterAgent', task: 'Identify macro trends in AI-Driven Enterprise Platforms' },\n  { role: 'GapFinderAgent', task: 'Find unsolved challenges in identified trends' },\n  { role: 'ReferenceScoutAgent', task: 'Locate recent scholarly publications (2023-2025)' },\n  { role: 'ProjectExtractorAgent', task: 'Extract technical contributions from resume' },\n  { role: 'AlignmentAnalystAgent', task: 'Map user projects to innovation gaps' },\n  { role: 'TitleGeneratorAgent', task: 'Generate 5-7 article titles' },\n  { role: 'ImpactForecasterAgent', task: 'Predict impact for each title' },\n  { role: 'AbstractDrafterAgent', task: 'Draft 400-word abstracts' },\n  { role: 'NoveltyValidatorAgent', task: 'Critique for originality (Critic)' },\n  { role: 'FeasibilityExpertAgent', task: 'Assess feasibility (Critic)' },\n  { role: 'EB1ACriticAgent', task: 'Score EB1-A criteria (Critic)' },\n  { role: 'DecisionMakerAgent', task: 'Approve or request refinement' },\n  { role: 'ReportAggregatorAgent', task: 'Synthesize final report' }\n];\n\nreturn {\n  json: {\n    researchModules,\n    specializedAgents,\n    userProfile,\n    workflow: 'parallel_execution',\n    timestamp: new Date().toISOString()\n  }\n};}\n\nreturn $input.all();"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        840,
+        -340
+      ],
+      "id": "a5c26ef1-ddb7-41f1-990a-a04f70997385",
+      "name": "Orchestrator - Agent Analyzer"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        720,
+        -20
+      ],
+      "id": "52bff245-e6b7-47e5-8cd3-86e2b704e050",
+      "name": "Loop Over Items"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "name": "Replace Me",
+      "typeVersion": 1,
+      "position": [
+        920,
+        0
+      ],
+      "id": "6c0826f8-c12d-4795-a2b7-e5440bdf5855"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2,
+      "position": [
+        940,
+        -120
+      ],
+      "id": "f3041f94-e687-4127-a9e7-b3225e3aa9c2",
+      "name": "Trend Spotter Agent"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        980,
+        100
+      ],
+      "id": "63d68663-9bef-4414-bcc0-0f744a1eb93f",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "aAOZdWEr35s8Z2u1",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2,
+      "position": [
+        1115.6,
+        -120
+      ],
+      "id": "c7dafeaa-5bbd-499f-bf02-108b2ead9fa9",
+      "name": "Gap Finder Agent"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "claude-sonnet-4-20250514",
+          "cachedResultName": "Claude 4 Sonnet"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatAnthropic",
+      "typeVersion": 1.3,
+      "position": [
+        1140,
+        100
+      ],
+      "id": "1dcd60be-2499-4371-80f9-293512be1a8b",
+      "name": "Anthropic Chat Model"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2,
+      "position": [
+        1308.7599999999998,
+        -120
+      ],
+      "id": "241fd158-3cfc-4b59-bfad-cdf5d8978e6e",
+      "name": "Title Generator Agent"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4.1-mini"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        1340,
+        100
+      ],
+      "id": "9e7a9d3d-e748-4472-9aef-f8d6d1011f84",
+      "name": "OpenAI Chat Model1",
+      "credentials": {
+        "openAiApi": {
+          "id": "e7N17UApuhGLzlq0",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {
+          "systemMessage": "You are a scholarly abstract writer specializing in EB1-A visa applications. Your task is to draft a 400-word academic abstract that:\n\n1. Clearly articulates a novel research contribution\n2. Emphasizes leadership, innovation, and potential for national/international impact\n3. Includes quantifiable outcomes wherever possible\n4. Aligns with EB1-A criteria (extraordinary ability in sciences, arts, education, business, or athletics)\n\nOutput Format:\n{\n  \"abstract\": \"[400-word abstract text]\",\n  \"key_innovation\": \"[1-2 sentence summary of the core innovation]\",\n  \"impact_statement\": \"[2-3 sentences on expected impact]\"\n}"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2,
+      "position": [
+        1521.2359999999996,
+        -120
+      ],
+      "id": "eea44c51-e3c1-4dfd-8610-162feffb4767",
+      "name": "Abstract Drafter - Claude"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "claude-sonnet-4-20250514",
+          "cachedResultName": "Claude 4 Sonnet"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatAnthropic",
+      "typeVersion": 1.3,
+      "position": [
+        1560,
+        100
+      ],
+      "id": "1aa70b7c-71d9-428a-8321-d55bd4434597",
+      "name": "Anthropic Chat Model1"
+    },
+    {
+      "parameters": {
+        "options": {
+          "systemMessage": "You are a scholarly abstract writer specializing in EB1-A visa applications. Your task is to draft a 400-word academic abstract that:\n\n1. Clearly articulates a novel research contribution\n2. Emphasizes leadership, innovation, and potential for national/international impact\n3. Includes quantifiable outcomes wherever possible\n4. Aligns with EB1-A criteria (extraordinary ability in sciences, arts, education, business, or athletics)\n\nOutput Format:\n{\n  \"abstract\": \"[400-word abstract text]\",\n  \"key_innovation\": \"[1-2 sentence summary of the core innovation]\",\n  \"impact_statement\": \"[2-3 sentences on expected impact]\"\n}"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2,
+      "position": [
+        1900,
+        -120
+      ],
+      "id": "2cf6581d-9521-462d-838e-8596f8fa6b8c",
+      "name": "Abstract Drafter - GPT-4"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4.1-mini"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        1940,
+        100
+      ],
+      "id": "e6e810b0-43f5-4062-95d9-6155e264ea30",
+      "name": "OpenAI Chat Model2",
+      "credentials": {
+        "openAiApi": {
+          "id": "e7N17UApuhGLzlq0",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {
+          "systemMessage": "You are a scholarly abstract writer specializing in EB1-A visa applications. Your task is to draft a 400-word academic abstract that:\n\n1. Clearly articulates a novel research contribution\n2. Emphasizes leadership, innovation, and potential for national/international impact\n3. Includes quantifiable outcomes wherever possible\n4. Aligns with EB1-A criteria (extraordinary ability in sciences, arts, education, business, or athletics)\n\nOutput Format:\n{\n  \"abstract\": \"[400-word abstract text]\",\n  \"key_innovation\": \"[1-2 sentence summary of the core innovation]\",\n  \"impact_statement\": \"[2-3 sentences on expected impact]\"\n}"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2,
+      "position": [
+        2260,
+        -120
+      ],
+      "id": "ec5e93d3-b114-4975-803f-5b20c1353505",
+      "name": "Abstract Drafter - Gemini"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        2300,
+        100
+      ],
+      "id": "97c536f4-83bb-4fc1-b1af-0bbf4ead0b31",
+      "name": "Google Gemini Chat Model1",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "aAOZdWEr35s8Z2u1",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {
+          "systemMessage": "You are a research critic specializing in evaluating novelty and originality. Your task is to critically assess the abstract and provide:\n\n1. Novelty Score (1-10): Rate the originality of the contribution\n2. Critical Analysis: List specific flaws, weaknesses, or areas lacking novelty\n3. Recommendations: Suggest improvements to strengthen the novelty\n\nOutput Format:\n{\n  \"novelty_score\": <1-10>,\n  \"flaws\": [\"flaw 1\", \"flaw 2\", ...],\n  \"recommendations\": [\"recommendation 1\", \"recommendation 2\", ...]\n}"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2,
+      "position": [
+        2620,
+        -120
+      ],
+      "id": "64a5aa2f-0813-453b-a91a-fb0ff3317f23",
+      "name": "Novelty Validator"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4.1-mini"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        2660,
+        100
+      ],
+      "id": "753c1792-3df7-4500-b7bb-99b8afe579ec",
+      "name": "OpenAI Chat Model3",
+      "credentials": {
+        "openAiApi": {
+          "id": "e7N17UApuhGLzlq0",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {
+          "systemMessage": "You are a technical feasibility expert and implementation critic. Your role is to evaluate research proposals for practical viability, resource requirements, and execution risks.\n\nEvaluate the abstract across these dimensions:\n1. Technical Feasibility: Can this actually be built/researched with current technology?\n2. Resource Requirements: What expertise, funding, equipment, and time are needed?\n3. Implementation Risks: What could go wrong? What are the blockers?\n4. Feasibility Score (1-10): Rate the overall viability\n\nProvide actionable feedback to improve feasibility.\n\nOutput Format:\n{\n  \"feasibility_score\": <1-10>,\n  \"technical_assessment\": \"detailed analysis of technical viability\",\n  \"resource_requirements\": [\"requirement 1\", \"requirement 2\", ...],\n  \"risks\": [\"risk 1\", \"risk 2\", ...],\n  \"recommendations\": [\"recommendation 1\", \"recommendation 2\", ...]\n}"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2,
+      "position": [
+        2980,
+        -120
+      ],
+      "id": "2e70bee3-a8b0-4353-9e11-2ba8815c434d",
+      "name": "Feasibility Expert"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "claude-sonnet-4-20250514",
+          "cachedResultName": "Claude 4 Sonnet"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatAnthropic",
+      "typeVersion": 1.3,
+      "position": [
+        3020,
+        100
+      ],
+      "id": "ba927878-73c6-445d-b218-f68269d6c4ca",
+      "name": "Anthropic Chat Model2"
+    },
+    {
+      "parameters": {
+        "options": {
+          "systemMessage": "You are an EB1-A visa immigration expert specialized in evaluating research proposals against extraordinary ability criteria. Your role is to critically assess research ideas for their alignment with EB1-A visa requirements.\n\nEvaluation Framework:\n1. EB1-A Category Alignment: Does the research demonstrate extraordinary ability in sciences, arts, education, business, or athletics? Does it show evidence of sustained national or international acclaim?\n\n2. Evidence Quality: Can the research generate documented evidence of: original contributions of major significance, authorship of scholarly articles, judging work of others, leading/critical roles, high salary/remuneration, commercial success, or other comparable evidence?\n\n3. Documentation Viability: Will the outcomes be documentable through letters, publications, patents, citations, awards, or other verifiable evidence acceptable to USCIS?\n\n4. Comparative Advantage: Does this research stand significantly above typical academic work? Does it demonstrate leadership and impact at national/international level?\n\nProvide your assessment in the following JSON format:\n{\n  \"eb1a_score\": <1-10 score>,\n  \"category_alignment\": \"<explanation of how research fits EB1-A extraordinary ability definition>\",\n  \"evidence_strength\": \"<assessment of what types of evidence this research could generate>\",\n  \"documentation_notes\": \"<specific recommendations for documenting achievements for visa application>\",\n  \"recommendations\": \"<suggestions to strengthen EB1-A alignment>\",\n  \"critical_gaps\": \"<potential weaknesses from visa perspective>\"\n}"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2,
+      "position": [
+        3340,
+        -120
+      ],
+      "id": "4ef0e47f-56ec-4d3f-96bc-cd5c5e7eecb0",
+      "name": "EB1-A Critic"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        3380,
+        100
+      ],
+      "id": "12f53b70-e830-4562-bb09-d10ef1b02a12",
+      "name": "Google Gemini Chat Model2",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "aAOZdWEr35s8Z2u1",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {
+          "systemMessage": "You are a research librarian specialized in finding relevant academic publications and citations. Your task is to identify high-quality, recent scholarly sources that support research ideas.\n\nFor each research challenge, gap, or topic identified:\n1. Find 2-3 recent publications (preferably from the last 5 years)\n2. Prioritize high-impact journals, conferences, or reputable sources\n3. Include: title, authors, year, DOI or link, and brief relevance explanation\n4. Focus on peer-reviewed academic sources\n\nProvide your findings in the following JSON format:\n{\n  \"challenge\": \"<research challenge or topic>\",\n  \"publications\": [\n    {\n      \"title\": \"<publication title>\",\n      \"authors\": \"<author names>\",\n      \"year\": <year>,\n      \"doi_or_link\": \"<DOI or URL>\",\n      \"relevance\": \"<how this publication relates to the challenge>\",\n      \"citation_count\": \"<approximate citation count if available>\"\n    }\n  ]\n}"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2,
+      "position": [
+        3700,
+        -120
+      ],
+      "id": "8e3ad3f8-5966-4e16-928c-351cc287420e",
+      "name": "Reference Scout Agent"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4.1-mini"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        3740,
+        100
+      ],
+      "id": "7772e1bc-70c2-4b88-9713-8e483c38c7b0",
+      "name": "OpenAI Chat Model4",
+      "credentials": {
+        "openAiApi": {
+          "id": "e7N17UApuhGLzlq0",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {
+          "systemMessage": "You are a technical contribution analyst specialized in extracting and documenting professional achievements for visa applications. Your task is to analyze user's career background, project descriptions, and technical work to extract key accomplishments relevant to EB1-A visa criteria.\n\nFor each project or achievement mentioned:\n1. Extract: Project name, technologies/methodologies used, quantifiable results/metrics, leadership role, innovation elements\n2. Focus on: Original contributions, scale/impact, recognition, unique technical challenges solved\n3. Identify: Patents, publications, open-source contributions, industry adoption, awards\n\nProvide your findings in the following JSON format:\n{\n  \"projects\": [\n    {\n      \"name\": \"<project name>\",\n      \"technologies\": [\"<tech1>\", \"<tech2>\"],\n      \"quantifiable_metrics\": \"<user numbers, performance improvements, revenue impact, etc.>\",\n      \"leadership_role\": \"<role and responsibilities>\",\n      \"innovation_elements\": \"<what was novel or cutting-edge>\",\n      \"recognition\": \"<awards, citations, industry adoption>\",\n      \"timeline\": \"<duration and dates>\"\n    }\n  ]\n}"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2,
+      "position": [
+        3936.2310063463283,
+        -120
+      ],
+      "id": "f630a433-2ca3-4f3c-87d8-b55d0a777c2d",
+      "name": "Project Extractor Agent"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "claude-sonnet-4-20250514",
+          "cachedResultName": "Claude 4 Sonnet"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatAnthropic",
+      "typeVersion": 1.3,
+      "position": [
+        3980,
+        100
+      ],
+      "id": "5a51b4d8-e4c4-48f9-9747-7423d9ff8008",
+      "name": "Anthropic Chat Model3"
+    },
+    {
+      "parameters": {
+        "options": {
+          "systemMessage": "You are a strategic analyst mapping user's technical accomplishments to identified research trends and market opportunities. Your task is to create compelling value propositions that demonstrate how user's work addresses important research gaps.\n\nFor each project extracted from user's background:\n1. Match it to one or more research trends/gaps identified earlier\n2. Articulate the unique value proposition: How does this project address the trend/gap?\n3. Quantify impact: Market size, user base, adoption metrics, citations, or other relevant metrics\n4. Highlight differentiation: What makes this approach unique compared to existing solutions?\n\nProvide your analysis in the following JSON format:\n{\n  \"alignments\": [\n    {\n      \"project_name\": \"<from extracted projects>\",\n      \"matched_trend\": \"<which research trend/gap this addresses>\",\n      \"value_proposition\": \"<clear statement of how project solves the problem>\",\n      \"impact_metrics\": \"<quantifiable impact>\",\n      \"differentiation\": \"<what's unique about this approach>\",\n      \"eb1a_relevance\": \"<why this matters for EB1-A extraordinary ability criteria>\"\n    }\n  ]\n}"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2,
+      "position": [
+        4220,
+        -120
+      ],
+      "id": "63fb452d-28a4-4ba2-b02c-bb6b00e7684f",
+      "name": "Alignment Analyst Agent"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        4260,
+        100
+      ],
+      "id": "15af59b8-90df-46ba-a067-7658b79c915f",
+      "name": "Google Gemini Chat Model3",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "aAOZdWEr35s8Z2u1",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {
+          "systemMessage": "You are an executive report synthesizer specializing in creating compelling EB1-A visa application narratives. Your task is to integrate all research analysis components into a comprehensive, coherent document that demonstrates extraordinary ability.\n\nSynthesize the following elements:\n1. Research trends and gaps identified\n2. Proposed research contributions and abstracts\n3. Novelty and feasibility assessments\n4. EB1-A alignment analysis\n5. User's technical projects and achievements\n6. Value propositions linking projects to research opportunities\n7. Supporting publications and references\n\nCreate a cohesive narrative that:\n- Demonstrates original contributions of major significance\n- Shows national/international impact\n- Provides concrete evidence for EB1-A criteria\n- Connects user's past work to future research potential\n- Quantifies achievements with metrics and citations\n\nProvide your synthesis in the following JSON format:\n{\n  \"executive_summary\": \"<2-3 page comprehensive narrative>\",\n  \"key_contributions\": [\"<list of major achievements and innovations>\"],\n  \"impact_statement\": \"<quantified national/international impact>\",\n  \"eb1a_category_evidence\": {\n    \"original_contributions\": \"<specific examples>\",\n    \"scholarly_articles\": \"<publication record>\",\n    \"judging_work\": \"<peer review, conference committees>\",\n    \"critical_role\": \"<leadership positions>\",\n    \"high_remuneration\": \"<compensation/recognition indicators>\"\n  },\n  \"research_roadmap\": \"<future research direction and expected impact>\",\n  \"recommended_narrative\": \"<suggested story for visa application>\"\n}"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2,
+      "position": [
+        4500,
+        -120
+      ],
+      "id": "4c425268-0ce5-41eb-86f3-577b1cc7dd2d",
+      "name": "Report Aggregator"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4.1-mini"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        4540,
+        100
+      ],
+      "id": "ee1207a8-e650-47c6-a4af-ef5063c0d3f0",
+      "name": "OpenAI Chat Model5",
+      "credentials": {
+        "openAiApi": {
+          "id": "e7N17UApuhGLzlq0",
+          "name": "OpenAi account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Orchestrator - Agent Analyzer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Orchestrator - Agent Analyzer": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [
+          {
+            "node": "Trend Spotter Agent",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Replace Me",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Replace Me": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Trend Spotter Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Trend Spotter Agent": {
+      "main": [
+        [
+          {
+            "node": "Gap Finder Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Anthropic Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Gap Finder Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gap Finder Agent": {
+      "main": [
+        [
+          {
+            "node": "Title Generator Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Title Generator Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Title Generator Agent": {
+      "main": [
+        [
+          {
+            "node": "Abstract Drafter - Claude",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Anthropic Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Abstract Drafter - Claude",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Abstract Drafter - Claude": {
+      "main": [
+        [
+          {
+            "node": "Abstract Drafter - GPT-4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model2": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Abstract Drafter - GPT-4",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Abstract Drafter - GPT-4": {
+      "main": [
+        [
+          {
+            "node": "Abstract Drafter - Gemini",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Abstract Drafter - Gemini",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Abstract Drafter - Gemini": {
+      "main": [
+        [
+          {
+            "node": "Novelty Validator",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model3": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Novelty Validator",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Novelty Validator": {
+      "main": [
+        [
+          {
+            "node": "Feasibility Expert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Anthropic Chat Model2": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Feasibility Expert",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Feasibility Expert": {
+      "main": [
+        [
+          {
+            "node": "EB1-A Critic",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model2": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "EB1-A Critic",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "EB1-A Critic": {
+      "main": [
+        [
+          {
+            "node": "Reference Scout Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model4": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Reference Scout Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Reference Scout Agent": {
+      "main": [
+        [
+          {
+            "node": "Project Extractor Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Anthropic Chat Model3": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Project Extractor Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Project Extractor Agent": {
+      "main": [
+        [
+          {
+            "node": "Alignment Analyst Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model3": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Alignment Analyst Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Alignment Analyst Agent": {
+      "main": [
+        [
+          {
+            "node": "Report Aggregator",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model5": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Report Aggregator",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "35940804-5ca8-47d2-88aa-9a53f3d9b325",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "d6036f7489375f7ef715daf17a2b6c6029ccc4d9e9ba6b90beb5b0e67f608391"
+  },
+  "id": "wU0gSiOQdRWq548o",
+  "tags": []
+}
