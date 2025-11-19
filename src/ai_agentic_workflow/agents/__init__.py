@@ -14,6 +14,7 @@ from .base_agent import BaseAgent
 from .general_purpose_agent import GeneralPurposeAgent
 from .blog_creation_agent import BlogCreationAgent, BlogBrief, BlogDeliverable
 from .persona_extractor import PersonaExtractor, PersonaMemory
+from .linkedin_data_fetcher import LinkedInDataFetcher
 
 __all__ = [
     'CritiqueEngine',
@@ -35,4 +36,5 @@ __all__ = [
     'BlogDeliverable',
     'PersonaExtractor',
     'PersonaMemory',
+    'LinkedInDataFetcher',
 ]
